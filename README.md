@@ -13,7 +13,9 @@ Run
 `docker build -t rdma:latest .`
 
 in the top-level folder of this repo on a machine with docker
-installed.
+installed. You can obviously change the tag to whatever works best for
+you but the run script (see below) will only use the image tags
+provided too it.
 
 ## Running the Docker image
 
@@ -21,4 +23,17 @@ Run
 
 `docker run -i -t rdma:latest`
 
-to jump into an interactive session on the container.
+to jump into an interactive session on the container. However this
+container will be limited by a few things:
+
+1. The image will not have access to the the /dev/* nodes needed to
+establish and run RDMA.
+
+2. Not all the kernel modules on the host may be loaded so we may not
+have access to certain things needed to run RMDA.
+
+To overcome these issues use the run-rdma script.
+
+## The run-rdma script
+
+Add this..
