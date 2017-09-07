@@ -72,6 +72,15 @@ RUN dpkg -i --force-overwrite \
     librdmacm1_14-1_amd64.deb \
     libibumad3_14-1_amd64.deb
 
+# Install mstflint. Note the Ubuntu Xenial version is not recent
+# enough to support CX5 so we copy in a more recent release. We might
+# want to change this down the road.
+
+RUN apt-get install libmuparser2v5
+WORKDIR /root
+COPY tools/mstflint_4.6.0-1_amd64.deb .
+RUN dpkg -i mstflint_4.6.0-1_amd64.deb
+
 # Install the switchtec-user and nvmetcli cli program via github. This
 # is because  we don't have packages for them yet.
 
@@ -82,6 +91,13 @@ RUN make install
 
 WORKDIR /root
 RUN git clone git://git.infradead.org/users/hch/nvmetcli.git
+
+# Copy in the required tools in the tools subfolder and either install
+# or place them in a suitable place as required. NB some of these
+# tools are x86_64 specific and will obvioulsy bork if you are running
+# a differnet ARCH.
+
+COPY tools/mlxup /usr/local/bin
 
 # Now add a local user called rdma-user so we don't have to execute things
 # as root inside the container. We also create a rdma group so we can

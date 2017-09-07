@@ -37,3 +37,9 @@ To overcome these issues use the run-rdma script.
 ## The run-rdma script
 
 Add this..
+
+## The tools subfolder
+
+The tools subfolder containers a number of useful userspace tools that
+tend to be vendor specific. We put them here so they can be run on the
+host or copied into the container as needed.
