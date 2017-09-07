@@ -1,0 +1,47 @@
+#!/bin/bash
+#
+# (c) Stephen Bates, Eideticom 2017
+#
+# run-rdma
+#
+# Setup and run a docker image which can perform RDMA operations. This
+# script checks a bunch of things on the host machine related to
+# device nodes and kernel modules before executing the docker run
+# command.
+
+LABEL=${LABEL:-rdma:latest}
+MODULES=(switchtec mlx5_ib ib_uverbs rdma_cm rdma_ucm)
+
+# Check to make sure the appropriate kernel modules are installed. If
+# not inform the user and exit.
+
+function modcheck {
+
+    if lsmod | grep "$1" &> /dev/null ; then
+	echo "$MODULE is loaded!"
+    else
+	echo "$MODULE is not loaded! Please load and re-run!"
+	exit 1
+    fi
+}
+
+for MODULE in ${MODULES[@]}; do
+    modcheck $MODULE
+done
+
+# Ensure that the RNIC port(s) that we are going to pass through to
+# the container are in RoCE mode. If they are not we abort. Note we
+# don't (currently) support Infiniband. For example if you have
+# Mellanox RNICs you might want to run a command like:
+#
+# mstconfig -d 0000:04:00.0 set LINK_TYPE_P1=ETH
+#
+
+
+# Now start the contain running. We do this in detached mode and we
+# can then either reattach to it or ssh in to it to continue working
+# with it.
+
+docker run --device=/dev/switchtec0 --device=/dev/infiniband/rdma_cm \
+       -it $LABEL
+
