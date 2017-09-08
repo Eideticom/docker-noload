@@ -43,3 +43,10 @@ Add this..
 The tools subfolder containers a number of useful userspace tools that
 tend to be vendor specific. We put them here so they can be run on the
 host or copied into the container as needed.
+
+## The misc subfolder
+
+The misc folder contains a range of fun things including:
+
+1. 70-persistent-net.rules - an example udev rules file for giving the
+network interfaces in the system sane names.
