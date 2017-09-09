@@ -1,0 +1,3 @@
+[submodule "pipework"]
+	path = pipework
+	url = https://github.com/jpetazzo/pipework

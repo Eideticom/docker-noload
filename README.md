@@ -38,6 +38,14 @@ To overcome these issues use the run-rdma script.
 
 Add this..
 
+## The pipework submodule
+
+We use pipework to pass the network interfaces from the host into the
+container. This is utilized by the run-rdma script but you can also do
+it by hand using commands like:
+
+./pipework --direct-phys mlx1p1 -i mlx1p1 <container id> <ip address>
+
 ## The tools subfolder
 
 The tools subfolder containers a number of useful userspace tools that
