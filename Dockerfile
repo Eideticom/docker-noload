@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     git \
     infiniband-diags \
+    iputils-ping \
     libncurses5-dev \
     libnl-3-dev \
     libnl-route-3-dev \
@@ -43,6 +44,8 @@ RUN apt-get update && apt-get install -y \
     valgrind \
     strace \
     sudo \
+    tmux \
+    traceroute \
     wget
 
 # Install rdma-core. For now get this from GitHub since we don't have
