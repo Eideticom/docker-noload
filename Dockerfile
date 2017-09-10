@@ -101,6 +101,7 @@ RUN git clone git://git.infradead.org/users/hch/nvmetcli.git
 # a differnet ARCH.
 
 COPY tools/mlxup /usr/local/bin
+COPY tools/ibdev2netdev /usr/local/bin
 
 # Now add a local user called rdma-user so we don't have to execute things
 # as root inside the container. We also create a rdma group so we can
