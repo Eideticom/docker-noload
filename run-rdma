@@ -10,7 +10,7 @@
 # command.
 
 LABEL=${LABEL:-rdma:latest}
-MODULES=(switchtec mlx5_ib ib_uverbs rdma_cm rdma_ucm)
+MODULES=(switchtec mlx5_ib ib_uverbs rdma_cm rdma_ucm bnxt_en bnxt_re)
 
 # Check to make sure the appropriate kernel modules are installed. If
 # not inform the user and exit.

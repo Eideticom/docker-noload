@@ -103,6 +103,13 @@ RUN git clone git://git.infradead.org/users/hch/nvmetcli.git
 COPY tools/mlxup /usr/local/bin
 COPY tools/ibdev2netdev /usr/local/bin
 
+# Now perform some Broadcom NetExtreme specific steps. This includes
+# installing some tools. Note that for these RNICs to work we need
+# certain BRCM drivers and the upstream version is not always the ones
+# you need (e.g. bnxt_en and bnxt_re).
+
+COPY tools/bnxtnvm /usr/local/bin
+
 # Now add a local user called rdma-user so we don't have to execute things
 # as root inside the container. We also create a rdma group so we can
 # give the user access to H/W as needed.
