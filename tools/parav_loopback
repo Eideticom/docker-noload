@@ -1,0 +1,38 @@
+#!/bin/bash
+#
+# (c) Stephen Bates <stephen@eideticom>, 2017
+#
+# A simple bash script based on one from Parav Pandit at Mellanox that
+# *should* enable loopback via rdma_cm. See [1] for a discussion of
+# origin.
+#
+# [1] https://marc.info/?l=linux-rdma&m=150575871330293&w=2
+
+IFACE0=${IFACE0:-mlx0p1}
+IFACE1=${IFACE1:-mlx1p1}
+LOOP_10=${LOOP_10:-10}
+LOOP_01=${LOOP_01:-20}
+IP0=${IP0:-172.18.1.1}
+IP1=${IP1:-172.18.1.1}
+
+LOWPRI=20000
+HIPRI=0
+
+  # Shift local rules policy to lower priority
+  
+ip rule add pref $LOWPRI lookup local
+ip rule del pref $HIPRI
+
+ip rule add pref $HIPRI iif $IFACE0 lookup local
+ip rule add pref $HIPRI iif $IFACE1 lookup local
+
+  # Force packet to go out on interface
+  
+ip route add default dev $IFACE1 table $LOOP_10
+ip route add default dev $IFACE0 table $LOOP_01
+
+ # Define special packets of p0 to p1, p1 to p0 to divert to force
+ # table
+ 
+ip rule add pref $HIPRI from $IP1 to $IP0 lookup $LOOP_10
+ip rule add pref $HIPRI from $IP0 to $IP1 lookup $LOOP_01

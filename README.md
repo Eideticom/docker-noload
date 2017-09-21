@@ -58,3 +58,25 @@ The misc folder contains a range of fun things including:
 
 1. 70-persistent-net.rules - an example udev rules file for giving the
 network interfaces in the system sane names.
+
+## Notes for Mellanox CX5s
+
+The CX5s are well supported by the upstream drivers. For RoCE mode you
+need to use the user space tools to set the physical layer to
+Ethernet. You can use configfs to set the preferred RoCE mode. Note
+you should see two GID entries per IP address (one is RoCEv1 and the
+other is RoCEv2).
+
+## Notes for Broadcom NetExtremes
+
+Even if the FW is up to date, the RoCE needs to be turned on using the
+ldiag tool (which requires a horrible out-of-tree kernel module to be
+loaded). Right now we are being asked to use the BRCM provided drivers
+(bnxt_en and bnxt_re) rather than the in-tree versions of these
+drivers.
+
+Note that when connecting the 25Gbps dual port NetExtremes to the
+Stingray using the 4:1 cable you should use cable "A" to connect to
+one of the ports of the 25Gbps device. Use ethtool -s <dev> speed
+25000 to set the speed and also disable autoneg.
+
