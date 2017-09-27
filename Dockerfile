@@ -22,25 +22,32 @@ MAINTAINER Stephen Bates <stephen@eideticom.com>
 # needed for RDMA.
 
 RUN apt-get update && apt-get install -y \
+    apt-utils \
+    autoconf \
     build-essential \
     cmake \
     dh-make \
     dh-systemd \
     gcc \
     git \
-    infiniband-diags \
     iputils-ping \
     libncurses5-dev \
+    libmuparser2v5 \
     libnl-3-dev \
     libnl-route-3-dev \
     libudev-dev \
+    libglib2.0-0 \
+    libglib2.0-dev \
+    libtool \
+    libopensm5a \
+    libopensm-dev \
     net-tools \
     ninja-build \
     nvme-cli \
     pciutils \
-    perftest \
     pkg-config \
     python \
+    python-docutils \
     valgrind \
     strace \
     sudo \
@@ -59,30 +66,62 @@ WORKDIR /root/rdma-core
 RUN git init && \
     git remote add origin https://github.com/linux-rdma/rdma-core.git
 RUN git fetch origin
-RUN git checkout -b rdma v14
+RUN git checkout -b rdma v15
 WORKDIR /root
-RUN tar cvfz rdma-core_14.orig.tar.gz rdma-core
+RUN tar cvfz rdma-core_15.orig.tar.gz rdma-core
 WORKDIR /root/rdma-core
 RUN dpkg-buildpackage -d
 WORKDIR /root/
 RUN dpkg -i --force-overwrite \
-    rdma-core_14-1_amd64.deb \
-    libibverbs1_14-1_amd64.deb \
-    libibcm1_14-1_amd64.deb \
-    ibverbs-utils_14-1_amd64.deb \
-    ibverbs-providers_14-1_amd64.deb \
-    rdmacm-utils_14-1_amd64.deb \
-    librdmacm1_14-1_amd64.deb \
-    libibumad3_14-1_amd64.deb
+    rdma-core_15-1_amd64.deb \
+    libibverbs1_15-1_amd64.deb \
+    libibverbs-dev_15-1_amd64.deb \
+    libibcm1_15-1_amd64.deb \
+    ibverbs-utils_15-1_amd64.deb \
+    ibverbs-providers_15-1_amd64.deb \
+    rdmacm-utils_15-1_amd64.deb \
+    librdmacm1_15-1_amd64.deb \
+    librdmacm-dev_15-1_amd64.deb \
+    libibumad3_15-1_amd64.deb \
+    libibumad-dev_15-1_amd64.deb
+
+# Install infiniband-diags and perftest. Both of these are now
+# upstreamed on the linux-rdma GitHub account.
+
+WORKDIR /root
+RUN mkdir infiniband-diags
+WORKDIR /root/infiniband-diags
+RUN git init && \
+    git remote add origin https://github.com/linux-rdma/infiniband-diags.git
+RUN git fetch origin
+RUN git checkout -b diags 2.0.0
+RUN ./autogen.sh
+RUN ./configure
+  # Next two lines are a hack to get the build to work
+RUN ln -s /usr/include/infiniband/complib /usr/local/include/complib
+RUN ln -s /usr/include/infiniband/iba /usr/local/include/iba
+RUN make
+RUN make install
+
+WORKDIR /root
+RUN mkdir perftest
+WORKDIR /root/perftest
+RUN git init && \
+    git remote add origin https://github.com/linux-rdma/perftest.git
+RUN git fetch origin
+RUN git checkout -b perftest V4.1-0.2
+RUN ./autogen.sh
+RUN ./configure
+RUN make
+RUN make install
 
 # Install mstflint. Note the Ubuntu Xenial version is not recent
 # enough to support CX5 so we copy in a more recent release. We might
 # want to change this down the road.
 
-RUN apt-get install libmuparser2v5
 WORKDIR /root
 COPY tools/mstflint_4.6.0-1_amd64.deb .
-RUN dpkg -i mstflint_4.6.0-1_amd64.deb
+RUN dpkg --ignore-depends=libibmad5 -i mstflint_4.6.0-1_amd64.deb
 
 # Install the switchtec-user and nvmetcli cli program via github. This
 # is because  we don't have packages for them yet.
@@ -102,6 +141,7 @@ RUN git clone git://git.infradead.org/users/hch/nvmetcli.git
 
 COPY tools/mlxup /usr/local/bin
 COPY tools/ibdev2netdev /usr/local/bin
+COPY tools/parav_loopback /usr/local/bin
 
 # Now perform some Broadcom NetExtreme specific steps. This includes
 # installing some tools. Note that for these RNICs to work we need
