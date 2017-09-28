@@ -12,6 +12,8 @@
 LABEL=${LABEL:-rdma:latest}
 
 MODULES=(switchtec ib_uverbs rdma_cm rdma_ucm \
+		   configfs \
+		   nvmet nvme nvme_fabrics nvmet_rdma nvme_rdma \
 		   mlx5_core mlx5_ib)
 		   #bnxt bnxt_re)
 
