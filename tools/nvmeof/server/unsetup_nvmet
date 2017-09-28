@@ -1,0 +1,13 @@
+#!/bin/bash
+
+CFG=${CFG:-/sys/kernel/config/nvmet/}
+SUBSYS=${SUBSYS:-eideticom}
+
+if [ -e $CFG/subsystems/$SUBSYS/namespaces/1/enable ]; then
+    rm -f $CFG/ports/1/subsystems/$SUBSYS || true
+    echo 0 > $CFG/subsystems/$SUBSYS/namespaces/1/enable
+
+    rmdir $CFG/subsystems/$SUBSYS/namespaces/* || true
+    rmdir $CFG/subsystems/$SUBSYS || true
+    rmdir $CFG/ports/1 || true
+fi

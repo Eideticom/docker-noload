@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# A simple script to setup the demo "GUI" using tmux commands. We open
+# two terminal windows, htop and the switchtec gui. We also ssh into
+# the client so we have that handy too. For best results you may want
+# to consider maximizing the terminal window.
+
+SWITCHTEC=${SWITCHTEC:-/dev/switchtec0}
+USER=${USER:-fpga}
+IP=${IP:-localhost}
+
+tmux new session \; \
+ split-window -h -p 50 \; \
+ split-window -v -p 50 \; \
+ send-keys "switchtec gui $SWITCHTEC" C-m \; \
+ split-window -h -p 50 \; \
+ send-keys "top" C-m \; \
+ select-pane -t 1 \; \
+ split-window -h -p 50 \; \
+ send-keys "ssh ${USER}@$IP" C-m \; \
+ select-pane -t 1 \;

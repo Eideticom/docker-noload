@@ -120,7 +120,7 @@ RUN make install
 # want to change this down the road.
 
 WORKDIR /root
-COPY tools/mstflint_4.6.0-1_amd64.deb .
+COPY tools/rdma/mstflint_4.6.0-1_amd64.deb .
 RUN dpkg --ignore-depends=libibmad5 -i mstflint_4.6.0-1_amd64.deb
 
 # Install the switchtec-user and nvmetcli cli program via github. This
@@ -139,16 +139,29 @@ RUN git clone git://git.infradead.org/users/hch/nvmetcli.git
 # tools are x86_64 specific and will obvioulsy bork if you are running
 # a differnet ARCH.
 
-COPY tools/mlxup /usr/local/bin
-COPY tools/ibdev2netdev /usr/local/bin
-COPY tools/parav_loopback /usr/local/bin
+COPY tools/rdma/mlxup /usr/local/bin
+COPY tools/rdma/ibdev2netdev /usr/local/bin
+
+COPY tools/net/parav_loopback /usr/local/bin
+
+COPY tools/nvmeof/server/server-gui /usr/local/bin
+COPY tools/nvmeof/server/setup_nvmet /usr/local/bin
+COPY tools/nvmeof/server/unsetup_nvmet /usr/local/bin
+
+COPY tools/nvmeof/client/connect /usr/local/bin
+
+# Copy the fio scripts into a fio folder.
+
+WORKDIR /root
+RUN mkdir fio
+COPY tools/nvmeof/client/*.fio /root/fio
 
 # Now perform some Broadcom NetExtreme specific steps. This includes
 # installing some tools. Note that for these RNICs to work we need
 # certain BRCM drivers and the upstream version is not always the ones
 # you need (e.g. bnxt_en and bnxt_re).
 
-COPY tools/bnxtnvm /usr/local/bin
+COPY tools/rdma/bnxtnvm /usr/local/bin
 
 # Now add a local user called rdma-user so we don't have to execute things
 # as root inside the container. We also create a rdma group so we can

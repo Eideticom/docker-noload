@@ -1,0 +1,9 @@
+[randread]
+ioengine=libaio
+rw=randread
+direct=1
+iodepth=64
+runtime=120
+io_size=200G
+numjobs=8
+bs=1M

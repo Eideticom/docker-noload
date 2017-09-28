@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# A simple bash script to setup a NVMe over Fabrics server. You can
+# call this for example with something like:
+#
+# P2PMEM=yes ./setup-nvmet
+#
+
+set -e
+
+CFG=${CFG:-/sys/kernel/config/nvmet/}
+SUBSYS=${SUBSYS:-eideticom}
+DEV=${DEV:-/dev/nvme0n1}
+P2PMEM=${P2PMEM:-none}
+PORT=${PORT:-4420}
+IP=${IP:-172.18.1.1}
+
+cd $CFG
+
+mkdir subsystems/$SUBSYS
+cd subsystems/$SUBSYS
+echo 1 > attr_allow_any_host
+
+mkdir namespaces/1
+cd namespaces/1
+echo -n $DEV > device_path
+echo 1 > enable
+
+cd $CFG
+
+mkdir ports/1
+cd ports/1
+echo -n ipv4 > addr_adrfam
+echo -n rdma > addr_trtype
+echo -n $PORT > addr_trsvcid
+echo -n $IP > addr_traddr
+
+if [ $P2PMEM != "none" ]; then
+    echo yes > allow_p2pmem
+fi
+
+ln -s $CFG/subsystems/$SUBSYS subsystems/$SUBSYS

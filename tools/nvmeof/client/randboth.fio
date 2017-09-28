@@ -1,0 +1,10 @@
+[randboth]
+ioengine=libaio
+rw=randrw
+rwmixwrite=50
+direct=1
+iodepth=64
+runtime=120
+io_size=100%
+numjobs=8
+bs=1M

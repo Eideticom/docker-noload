@@ -1,0 +1,8 @@
+[latency]
+readwrite=randread
+bs=4k
+runtime=60
+ioengine=sync
+size=100%
+numjobs=1
+iodepth=1
