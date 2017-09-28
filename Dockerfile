@@ -43,7 +43,6 @@ RUN apt-get update && apt-get install -y \
     libopensm-dev \
     net-tools \
     ninja-build \
-    nvme-cli \
     pciutils \
     pkg-config \
     python \
@@ -124,7 +123,9 @@ COPY tools/rdma/mstflint_4.6.0-1_amd64.deb .
 RUN dpkg --ignore-depends=libibmad5 -i mstflint_4.6.0-1_amd64.deb
 
 # Install the switchtec-user and nvmetcli cli program via github. This
-# is because  we don't have packages for them yet.
+# is because  we don't have packages for them yet. Also install
+# nvme-cli via GitHub as the packaged version does not at this time
+# support fabrics.
 
 WORKDIR /root
 RUN git clone https://github.com/Microsemi/switchtec-user.git
@@ -133,6 +134,13 @@ RUN make install
 
 WORKDIR /root
 RUN git clone git://git.infradead.org/users/hch/nvmetcli.git
+
+WORKDIR /root
+RUN git clone https://github.com/linux-nvme/nvme-cli.git
+WORKDIR /root/nvme-cli
+RUN git checkout -b nvme-cli v1.4
+RUN make
+RUN make install
 
 # Copy in the required tools in the tools subfolder and either install
 # or place them in a suitable place as required. NB some of these
@@ -154,7 +162,7 @@ COPY tools/nvmeof/client/connect /usr/local/bin
 
 WORKDIR /root
 RUN mkdir fio
-COPY tools/nvmeof/client/*.fio /root/fio
+COPY tools/nvmeof/client/*.fio /root/fio/
 
 # Now perform some Broadcom NetExtreme specific steps. This includes
 # installing some tools. Note that for these RNICs to work we need
