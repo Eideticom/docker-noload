@@ -9,16 +9,37 @@
 # device nodes and kernel modules before executing the docker run
 # command.
 
+  # Command line variables
+
 LABEL=${LABEL:-rdma:latest}
+MELLANOX=${MELLANOX:-yes}
+BROADCOM=${BROADCOM:-yes}
+SWITCHTEC=${SWITCHTEC:-yes}
 
-MODULES=(switchtec ib_uverbs rdma_cm rdma_ucm \
-		   configfs \
-		   nvmet nvme nvme_fabrics nvmet_rdma nvme_rdma \
-		   mlx5_core mlx5_ib)
-		   #bnxt bnxt_re)
+  # Build list of necessary kernel modules
 
-# Check to make sure the appropriate kernel modules are installed. If
-# not inform the user and exit.
+MODULES=(ib_uverbs \
+	     rdma_cm \
+	     rdma_ucm \
+	     configfs \
+	     nvmet \
+	     nvme \
+	     nvme_fabrics \
+	     nvmet_rdma \
+	     nvme_rdma)
+
+if [ $MELLANOX == "yes" ]; then
+    MODULES+=(mlx5_core mlx5_ib)
+fi
+if [ $BROADCOM == "yes" ]; then
+    MODULES+=(bnxt bnxt_re)
+fi
+if [ $SWITCHTEC == "yes" ]; then
+    MODULES+=(switchtec)
+fi
+
+  # Check to make sure the appropriate kernel modules are
+  # installed. If not inform the user and exit.
 
 function modcheck {
 
