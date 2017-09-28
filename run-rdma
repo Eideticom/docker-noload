@@ -10,7 +10,10 @@
 # command.
 
 LABEL=${LABEL:-rdma:latest}
-MODULES=(switchtec mlx5_ib ib_uverbs rdma_cm rdma_ucm bnxt_en bnxt_re)
+
+MODULES=(switchtec ib_uverbs rdma_cm rdma_ucm \
+		   mlx5_core mlx5_ib)
+		   #bnxt bnxt_re)
 
 # Check to make sure the appropriate kernel modules are installed. If
 # not inform the user and exit.
@@ -37,11 +40,19 @@ done
 # mstconfig -d 0000:04:00.0 set LINK_TYPE_P1=ETH
 #
 
+# TBD: Add this check
+
 
 # Now start the contain running. We do this in detached mode and we
 # can then either reattach to it or ssh in to it to continue working
 # with it.
 
-docker run --device=/dev/switchtec0 --device=/dev/infiniband/rdma_cm \
+docker run \
+       --privileged \
+       --net=host \
+       --device=/dev/switchtec0 \
+       --device=/dev/infiniband/rdma_cm \
+       --device=/dev/infiniband/uverbs0 \
+       --device=/dev/infiniband/uverbs1 \
+       --cap-add SYS_PTRACE \
        -it $LABEL
-
