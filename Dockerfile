@@ -48,6 +48,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     python \
     python-docutils \
+    python-pip \
     valgrind \
     strace \
     sudo \
@@ -137,6 +138,9 @@ RUN make install
 
 WORKDIR /root
 RUN git clone git://git.infradead.org/users/hch/nvmetcli.git
+WORKDIR /root/nvmetcli
+RUN pip install configshell_fb six pyparsing
+RUN ./setup.py install
 
 WORKDIR /root
 RUN git clone https://github.com/linux-nvme/nvme-cli.git

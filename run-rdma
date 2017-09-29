@@ -73,5 +73,6 @@ done
 docker run \
        --privileged \
        -v /dev:/dev \
+       -v /sys:/sys \
        --net=host \
        -it $LABEL
