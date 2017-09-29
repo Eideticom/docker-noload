@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     cmake \
     dh-make \
     dh-systemd \
+    fio \
     gcc \
     git \
     iputils-ping \
@@ -116,11 +117,13 @@ RUN make install
 
 # Install mstflint. Note the Ubuntu Xenial version is not recent
 # enough to support CX5 so we copy in a more recent release. We might
-# want to change this down the road.
+# want to change this down the road. Note that this .deb was edited to
+# remove the libumad5 dependency since inifiband-diags now provides
+# that.
 
 WORKDIR /root
 COPY tools/rdma/mstflint_4.6.0-1_amd64.deb .
-RUN dpkg --ignore-depends=libibmad5 -i mstflint_4.6.0-1_amd64.deb
+RUN dpkg -i mstflint_4.6.0-1_amd64.deb
 
 # Install the switchtec-user and nvmetcli cli program via github. This
 # is because  we don't have packages for them yet. Also install
