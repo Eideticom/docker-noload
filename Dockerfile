@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y \
     fio \
     gcc \
     git \
+    htop \
     iputils-ping \
     libncurses5-dev \
     libmuparser2v5 \
@@ -51,6 +52,7 @@ RUN apt-get update && apt-get install -y \
     valgrind \
     strace \
     sudo \
+    sysstat \
     tmux \
     traceroute \
     wget
