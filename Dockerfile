@@ -154,6 +154,7 @@ RUN make install
 
 COPY tools/rdma/mlxup /usr/local/bin
 COPY tools/rdma/ibdev2netdev /usr/local/bin
+COPY tools/rdma/offload /usr/local/bin
 
 COPY tools/net/parav_loopback /usr/local/bin
 

@@ -1,0 +1,94 @@
+#!/bin/bash
+#
+# A simple script to enable the NVMe offload engine available on
+# Mellanox CX5s. Note the CX5(s) must be running FW that enables this
+# feature (the offload capabilities flags should tell you this). You
+# also need to be running the right driver code and right now this is
+# not upstream.
+#
+# This script is based off [1] with some modifications to add support
+# for p2pmem as well. Note the mem= and memap= set needed to create a
+# physical memory region for the offload buffers!
+#
+# [1] https://community.mellanox.com/docs/DOC-2918.
+
+NVME_DEV=${NVME_DEV:-nvme0}
+NVME_NS=${NVME_NS:-1}
+NVME_PCI=${NVME_PCI:-0000:04:00.0}
+USE_CMB=${USE_CMB:-0}
+NUM_P2P_QUEUES=${NUM_P2P_QUEUES:-1}
+
+OFFLOAD_MEM_START=${OFFLOAD_MEM_START:-0x300000000}
+OFFLOAD_MEM_SIZE=${OFFLOAD_MEM_SIZE:-2048}
+OFFLOAD_BUFFER_SIZE=${OFFLOAD_BUFFER_SIZE:-128}
+
+CFG=${CFG:-/sys/kernel/config/nvmet/}
+P2PMEM=${P2PMEM:-none}
+PORT=${PORT:-4420}
+IP=${IP:-172.18.1.1}
+
+NVME_NS=${NVME_DEV}n${NVME_NS}
+
+  # Unbind the NVMe device(s) and modprobe -r the nvme PCIe driver
+  # (nvme).
+
+echo $NVME_PCI > /sys/bus/pci/drivers/nvme/unbind
+modprobe -r nvme_rdma
+modprobe -r nvme_fabrics
+modprobe -r nvmet_rdma
+modprobe -r nvmet
+modprobe -r nvme_core
+modprobe -r nvme
+
+ # Now re-insert the nvme module with the desired module parameters
+ # set. Note we could do this with a unbind and bind if we
+ # prefer. Note we need to sleep for a while to make sure the binding
+ # has occurred.
+
+modprobe nvme num_p2p_queues=$NUM_P2P_QUEUES use_cmb=$USE_CMB
+modprobe nvmet
+modprobe nvmet-rdma \
+	 offload_mem_start=$OFFLOAD_MEM_START \
+	 offload_mem_size=$OFFLOAD_MEM_SIZE \
+	 offload_buffer_size=$OFFLOAD_BUFFER_SIZE
+modprobe nvme_rdma
+modprobe nvme_fabrics
+modprobe configfs
+sleep 10
+
+  # Check the module params for the target NVMe namespace make sense
+  # and align with expectations.
+
+cat /sys/block/${NVME_NS}/device/num_p2p_queues
+
+  # Now we setup a NVMe-oF subsystem. Let's copy some code we use in
+  # setup_nvmeof in order to do this. However note there are some
+  # additional configfs entries for the offload.
+
+cd $CFG
+
+mkdir subsystems/offload
+cd subsystems/offload
+echo 1 > attr_allow_any_host
+
+mkdir namespaces/1
+cd namespaces/1
+echo -n /dev/$NVME_NS > device_path
+echo $NVME_PCI
+echo -n $NVME_PCI > pci_device_path
+echo 1 > enable
+
+cd $CFG
+
+mkdir ports/1
+cd ports/1
+echo -n ipv4 > addr_adrfam
+echo -n rdma > addr_trtype
+echo -n $PORT > addr_trsvcid
+echo -n $IP > addr_traddr
+
+if [ $P2PMEM != "none" ]; then
+    echo yes > allow_p2pmem
+fi
+
+ln -s $CFG/subsystems/offload subsystems/offload
