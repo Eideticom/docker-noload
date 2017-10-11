@@ -173,9 +173,11 @@ COPY tools/nvmeof/client/*.fio /root/fio/
 # Now perform some Broadcom NetExtreme specific steps. This includes
 # installing some tools. Note that for these RNICs to work we need
 # certain BRCM drivers and the upstream version is not always the ones
-# you need (e.g. bnxt_en and bnxt_re).
+# you need (e.g. bnxt_en and bnxt_re). Note that the brcm_counters
+# script will only work on upstream kernel at 4.14 or newer...
 
 COPY tools/rdma/bnxtnvm /usr/local/bin
+COPY tools/rdma/brcm_counters /usr/local/bin
 
 # Now add a local user called rdma-user so we don't have to execute things
 # as root inside the container. We also create a rdma group so we can
