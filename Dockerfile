@@ -183,6 +183,8 @@ COPY tools/rdma/brcm_counters /usr/local/bin
 # as root inside the container. We also create a rdma group so we can
 # give the user access to H/W as needed.
 
-# RUN useradd -ms /bin/bash rdma-user
-# RUN echo "rdma-user:rdma" | chpasswd
-# RUN adduser rdma-user sudo
+RUN useradd -ms /bin/bash rdma-user
+RUN echo "rdma-user:rdma" | chpasswd
+RUN usermod -aG sudo rdma-user
+USER rdma-user
+WORKDIR /home/rdma-user
