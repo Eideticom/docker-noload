@@ -1,0 +1,790 @@
+#!/usr/bin/python
+########################################################################
+##
+## Copyright 2015 PMC-Sierra, Inc.
+##
+## Licensed under the Apache License, Version 2.0 (the "License"); you
+## may not use this file except in compliance with the License. You may
+## obtain a copy of the License at
+## http://www.apache.org/licenses/LICENSE-2.0 Unless required by
+## applicable law or agreed to in writing, software distributed under the
+## License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+## CONDITIONS OF ANY KIND, either express or implied. See the License for
+## the specific language governing permissions and limitations under the
+## License.
+##
+########################################################################
+
+########################################################################
+##
+##   Author: Logan Gunthorpe
+##
+##   Description:
+##     This script runs perftest tools with mbw in the background to
+##     measure the memory bandwidth effects of using P2P RDMA transfers.
+##
+########################################################################
+
+from __future__ import print_function
+
+import os
+import sys
+import subprocess as sp
+import pty
+import threading
+import re
+import traceback
+import signal
+import errno
+import time
+import getpass
+
+from itertools import repeat, chain
+
+suffix_re = re.compile(r"^([0-9\.]+)([KMGTP]?)", re.IGNORECASE)
+suffix_values = [('' , 1),
+                 ('K', 1 << 10),
+                 ('M', 1 << 20),
+                 ('G', 1 << 30),
+                 ('T', 1 << 40),
+                 ('P', 1 << 50)]
+suffix_dict = dict(suffix_values)
+
+def parse_suffix(value):
+    m = suffix_re.match(value)
+    if not m:
+        raise ValueError("Could not parse: '{}'".format(value))
+
+    value = float(m.group(1))
+    value *= suffix_dict[m.group(2).upper()]
+    return value
+
+class Suffix(object):
+    def __init__(self, value, unit="B"):
+        self.unit = unit
+
+        for s, v in suffix_values[::-1]:
+            if value < v:
+                continue
+            if s:
+                s+= "i"
+
+            self.div = v
+            self.value = float(value) / v
+            self.suffix = s
+            break
+        else:
+            self.value = float(value)
+            self.suffix = ""
+
+    def __format__(self, format):
+        return ("{:" + format + "} {}{}").format(self.value, self.suffix,
+                                                 self.unit)
+
+class ProcRunnerException(Exception):
+    def __str__(self):
+        pr, msg = self.args
+
+        ret = "".join(pr.output_lines) + "\n\n"
+        ret += msg + "\n"
+        ret += "  " + " ".join(pr.exe + pr.args)
+        return ret
+
+class ProcRunner(threading.Thread):
+    kill_sig = signal.SIGINT
+
+    def __init__(self, log_file=None, print_output=False,
+                 wait_for=False, *args, **kws):
+        self.log_file = log_file
+        self.print_output = print_output
+        self.kill_me = not wait_for
+        self.started = threading.Event()
+        self.exception = None
+        self.output_lines = []
+        self.args = []
+        super(ProcRunner, self).__init__(*args, **kws)
+
+    def process_line(self, line):
+        self.output_lines.append(line)
+
+        if self.log_file:
+            self.log_file.write(line)
+        if self.print_output:
+            sys.stdout.write(line)
+            sys.stdout.flush()
+
+    def setup(self):
+        pass
+
+    def finish(self):
+        pass
+
+    def run(self):
+        try:
+            master, slave = pty.openpty()
+            self.slave = slave
+            try:
+                self.p = sp.Popen(self.exe + self.args,
+                                  stdin=sp.PIPE,
+                                  stdout=slave,
+                                  stderr=slave,
+                                  preexec_fn=os.setsid)
+            except OSError as e:
+                e.filename = self.exe[0]
+                raise
+
+            mf = os.fdopen(master, "U")
+
+            self.setup()
+
+            while True:
+                self.started.set()
+                line = mf.readline()
+
+                try:
+                    self.process_line(line)
+                except:
+                    print("Exception occured while processing line:")
+                    traceback.print_exc()
+
+        except IOError:
+            self.finish()
+        except Exception as e:
+            self.started.set()
+            self.exception = sys.exc_info()
+
+
+    def check_started(self):
+        self.started.wait(2)
+        if self.exception:
+            self.join(5)
+            traceback.print_exception(*self.exception)
+            sys.exit(1)
+
+    def start(self):
+        super(ProcRunner, self).start()
+        self.check_started()
+
+    def wait(self):
+        if self.started.wait(2):
+            killed = False
+
+            if self.p.poll() is None:
+                #Delay a bit and see if the process finishes on its own
+                time.sleep(0.1)
+
+            if self.p.poll() is None and self.kill_me:
+                killed = True
+                os.killpg(self.p.pid, self.kill_sig)
+
+            try:
+                ret = self.p.wait()
+            except KeyboardInterrupt:
+                killed = True
+                os.killpg(self.p.pid, self.kill_sig)
+                ret = self.p.wait()
+
+            os.close(self.slave)
+
+        else:
+            raise ProcRunnerException(self, "Timed out waiting for process "
+                                      "to start")
+
+        self.join(1)
+        if ret and not killed:
+            raise ProcRunnerException(self, "Error occured while running "
+                                      "command")
+
+        return ret
+
+    def __enter__(self):
+        try:
+            self.start()
+        except:
+            try:
+                self.wait()
+            finally:
+                raise
+
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.wait()
+
+class LikwidPerfMixin(object):
+    likwid_re = re.compile(r"^\|\s+(?P<name>[^\[\|]+)" +
+                           r"( \[(?P<units>.*?)\])?\s+" +
+                           r"\|\s+(?P<value>[0-9\.e\+]+)\s+\|")
+
+    def __init__(self, group="MEM", cpu="S0:0", *args, **kwargs):
+        super(LikwidPerfMixin, self).__init__(*args, **kwargs)
+        self.exe = ["likwid-perfctr", "-g", group, "-C", cpu] + self.exe
+        self.likwid_stats = {}
+        self.likwid_units = {}
+
+    def process_line(self, line):
+        super(LikwidPerfMixin, self).process_line(line)
+
+        m = self.likwid_re.match(line)
+        if not m: return
+        self.likwid_stats[m.group("name")] = float(m.group("value"))
+        self.likwid_units[m.group("name")] = m.group("units")
+
+class TimeProcessLineMixin(object):
+    time_re = re.compile(r"^(?P<name>real|user|sys) (?P<value>[0-9\.]+)$")
+
+    def __init__(self, *args, **kwargs):
+        super(TimeProcessLineMixin, self).__init__(*args, **kwargs)
+        self.time_stats = {}
+
+    def process_line(self, line):
+        super(TimeProcessLineMixin, self).process_line(line)
+
+        m = self.time_re.match(line)
+        if not m: return
+
+        name = m.group('name')
+        value = float(m.group('value'))
+        self.time_stats[name] = value
+
+        if 'user' in self.time_stats and 'sys' in self.time_stats:
+            self.time_stats['total'] = (self.time_stats['user'] +
+                                        self.time_stats['sys'])
+
+
+    def calculate_results(self, duration=None, *args, **kwargs):
+        if duration is not None:
+            self.time_stats["duration"] = duration
+            self.time_stats["cpu_percent_duration"] = \
+                (100 * self.time_stats["total"] / duration)
+
+        self.time_stats["cpu_percent_total"] = (self.time_stats["total"] /
+                                                self.time_stats["real"]) * 100
+
+
+class TimeMixin(TimeProcessLineMixin):
+    def __init__(self, group="MEM", cpu="S0:0", *args, **kwargs):
+        super(TimeMixin, self).__init__(*args, **kwargs)
+        self.exe = ["time", "-p"] + self.exe
+
+
+class MBWRunner(ProcRunner):
+    exe = ["mbw"]
+    mbw_re = re.compile(r"(?P<N>[0-9]+)\s+" +
+                        r"Method: (?P<method>[A-Z]+)\s+" +
+                        r"Elapsed: (?P<elapsed>[0-9\.]+)\s+" +
+                        r"MiB: (?P<mib>[0-9\.]+)\s+" +
+                        r"Copy: (?P<rate>[0-9\.]+) MiB/s+")
+
+
+    def __init__(self, loops=10000, array_size_mb=512, tests=[0],
+                 *args, **kws):
+
+        super(MBWRunner, self).__init__(*args, **kws)
+        tests = [str(t) for t in tests]
+        self.args = (["-n", str(loops)] +
+                     list(chain(*zip(repeat('-t'), tests))) +
+                     [str(array_size_mb)])
+        self.rates = []
+        self.volume = 0.
+
+    def process_line(self, line):
+        super(MBWRunner, self).process_line(line)
+
+        m = self.mbw_re.match(line)
+        if not m: return
+
+        self.volume += float(m.group("mib")) * (1 << 20)
+        rate = float(m.group("rate")) * (1 << 20)
+        self.rates.append(rate)
+
+    def clear(self):
+        self.rates = []
+
+    def stats(self):
+        r = self.rates[1:-1]
+        if not r: return {}
+        return {"max": max(r),
+                "min": min(r),
+                "avg": sum(r) / len(r),
+                "count": len(r),
+                "volume": (self.volume * 2)} # multiply by 2 for read and write
+
+class CPUPerfRunner(ProcRunner):
+    exe = ["cpuperf.py"]
+
+    def __init__(self, perftest, *args, **kws):
+        super(CPUPerfRunner, self).__init__(*args, **kws)
+        self.args = ["-s", "-C", perftest]
+
+
+class LikwidMBWRunner(LikwidPerfMixin, MBWRunner):
+    pass
+
+class PerfTestOutputMixin(object):
+    def __init__(self, mbw=None, *args, **kwargs):
+        super(PerfTestOutputMixin, self).__init__(*args, **kwargs)
+        self.mbw = mbw
+        self.mbw_stats = None
+
+        self.results_line = False
+
+        self.units = {}
+        self.values = {}
+
+    def _process_field(self, f):
+        f = f.strip().strip("# ")
+        if "[" in f:
+            name, unit = f.split("[")
+            unit = unit.strip("[]")
+            self.units[name] = unit
+            return name
+        else:
+            return f.strip()
+
+    def process_line(self, line):
+        super(PerfTestOutputMixin, self).process_line(line)
+
+        if self.results_line:
+            self.results_line = False
+
+            try:
+                line = [float(x) for x in line.split()]
+                self.values.update(zip(self.fields, line))
+                if self.mbw is not None:
+                    self.mbw_stats = self.mbw.stats()
+            except ValueError:
+                pass
+        elif line.startswith(" #bytes"):
+            self.fields = [self._process_field(f) for f in  re.split(" {2,}", line)]
+            self.results_line = True
+
+    def finish(self):
+        if self.mbw_stats is None and self.mbw is not None:
+            self.mbw_stats = self.mbw.stats()
+
+        super(PerfTestOutputMixin, self).finish()
+
+    def bandwidth(self):
+        bw = self.values.get("BW average", None)
+        if bw is None: return None
+
+        return bw * 1000**2
+
+    def volume(self):
+        bytes = self.values.get("bytes", None)
+        its = self.values.get("iterations", None)
+
+        if bytes is None or its is None:
+            return None
+
+        return bytes * its
+
+    def latency(self):
+        avg = self.values.get("t_typical", self.values.get("t_avg", None))
+        if avg is None: return None
+
+        mn = self.values.get("t_min", 0)
+        mx = self.values.get("t_max", 0)
+
+        return {'avg': avg,
+                'min': mn,
+                'max': mx}
+
+class PerfTestServer(PerfTestOutputMixin, ProcRunner):
+    def __init__(self, command="ib_write_bw", block_size=8388608, duration=5,
+                 mmap=None, test_args=[], *args, **kwargs):
+        super(PerfTestServer, self).__init__(*args, **kwargs)
+        self.exe = [command]
+        self.args = ["-R", "-s", str(size), "-D", str(duration)]
+        self.args += test_args
+
+        if mmap:
+            self.args += ["--mmap", mmap]
+
+        self.ready = threading.Event()
+
+    def process_line(self, line):
+        super(PerfTestServer, self).process_line(line)
+
+        if "Waiting for client to connect" in line:
+            self.ready.set()
+
+        if self.mbw is not None and line.startswith(" #bytes"):
+            self.mbw.clear()
+
+    def start(self):
+        super(PerfTestServer, self).start()
+        if not self.ready.wait(2):
+            raise ProcRunnerException(self, "Timed out waiting for perftest "
+                                      "server to start")
+
+class LikwidPerfTestServer(LikwidPerfMixin, TimeMixin, PerfTestServer):
+    pass
+
+class PerfTestClient(PerfTestOutputMixin, TimeProcessLineMixin, ProcRunner):
+    def __init__(self, host, command="ib_write_bw", block_size=8388608,
+                 duration=5, test_args=[], *args, **kwargs):
+        super(PerfTestClient, self).__init__(*args, **kwargs)
+        self.exe = ["ssh", host, "time", "-p", command]
+        self.args = ["-R", "${SSH_CLIENT%% *}", "-s", str(size),
+                     "-D", str(duration)]
+        self.args += test_args
+
+class FioRunner(ProcRunner):
+    def __init__(self, test_args=[], **kwargs):
+        self.exe = ["fio", "-"]
+
+        self.extra_job_lines = "\n".join(test_args)
+        super(FioRunner, self).__init__(**kwargs)
+
+    def setup(self):
+        opts = dict(self.__class__.__dict__)
+        opts.update(self.__dict__)
+
+        job = self.job.format(**opts)
+        job = job + "\n" + self.extra_job_lines
+
+        if self.log_file:
+            print("\n", file=self.log_file)
+            print("-"*40, file=self.log_file)
+            print("Job File", file=self.log_file)
+            print("-"*40, file=self.log_file)
+            for l in job.split():
+                print(l.strip(), file=self.log_file)
+            print("-"*40, file=self.log_file)
+            print("", file=self.log_file)
+
+        self.p.stdin.write(job)
+        self.p.stdin.close()
+
+class FioServer(FioRunner):
+    job = """[rdma-server]
+             rw=read
+             ioengine=rdma
+             port=11692
+             bs={block_size}
+             size={size}"""
+
+    mbw_stats = {}
+
+    def __init__(self, command=None, block_size=1<<20, size=100<<40,
+                 duration=None,  mbw=None, mmap=None, **kwargs):
+        self.block_size = block_size
+        if self.block_size < 4096: self.block_size = 4096
+        self.size = size
+        self.mbw = mbw
+        self.mbw_started = False
+        self.mmap = mmap
+        if self.mmap is not None:
+            self.job += "\nmem=mmapshared:{mmap}"
+
+        self.ready = threading.Event()
+
+        super(FioServer, self).__init__(**kwargs)
+
+    def process_line(self, line):
+        super(FioServer, self).process_line(line)
+
+        if "waiting for connection" in line:
+            self.ready.set()
+        elif (self.mbw is not None and not self.mbw_started and
+              line.startswith("Jobs")):
+            self.mbw.clear()
+            self.mbw_started = True
+        elif self.mbw_started and line.startswith("rdma-server"):
+            self.mbw_stats = self.mbw.stats()
+            self.mbw_started = False
+
+    def start(self):
+        super(FioServer, self).start()
+        if not self.ready.wait(6):
+            raise ProcRunnerException(self, "Timed out waiting for fio "
+                                      "server to start")
+
+    def bandwidth(self):
+        return None
+
+    def latency(self):
+        return None
+
+    def volume(self):
+        return None
+
+class LikwidFioServer(LikwidPerfMixin, TimeMixin, FioServer):
+    pass
+
+
+class FioClient(TimeProcessLineMixin, FioRunner):
+    job = """[rdma-client]
+             rw=write
+             ioengine=rdma
+             runtime={duration}
+             hostname=${{SERVER}}
+             port=11692
+             verb={verb}
+             bs={block_size}
+             size={size}"""
+
+    def __init__(self, host, command="fio:write", duration=10, block_size=512,
+                 size=100<<40, **kwargs):
+        self.block_size = block_size
+        self.size = size
+        if ":" in command:
+            self.verb = command.split(":")[1]
+        else:
+            self.verb = "write"
+        self.duration = duration
+        self._volume = self._bandwidth = self._latency = None
+
+        super(FioClient, self).__init__(**kwargs)
+
+        self.args = ["SERVER=${SSH_CLIENT%% *}", "time", "-p"] + self.exe
+        self.exe = ["ssh", host]
+
+    lat_re = re.compile(r"^[^:]*: *min= *(?P<min>[0-9.e]+), *"
+                        r"max= *(?P<max>[0-9.e]+), *"
+                        r"avg= *(?P<avg>[0-9.e]+), *"
+                        r"stdev= *(?P<stdev>[0-9.e]+)")
+
+    def process_line(self, line):
+        super(FioClient, self).process_line(line)
+
+        line = line.strip()
+        if line.startswith("write:"):
+            line = line.split()
+            self._volume = parse_suffix(line[1].split("=")[1])
+            self._bandwidth = parse_suffix(line[2].split("=")[1])
+        elif line.startswith("lat"):
+            m = self.lat_re.match(line)
+            if m:
+                self._latency = {k: float(v) for k,v in m.groupdict().items()}
+
+    def bandwidth(self):
+        return self._bandwidth
+
+    def latency(self):
+        return self._latency
+
+    def volume(self):
+        return self._volume
+
+class DummyContext(object):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        pass
+
+def run_test(client="flash-rdma", size=8388608, duration=5, mmap=None,
+             socket=0, log_file=None, client_log_file=None, verbose=False,
+             perftest="ib_write_bw", cpu_perf=None, test_args=[], **kwargs):
+
+    mbw = LikwidMBWRunner(cpu="S{}:1".format(socket),
+                          log_file=log_file)
+
+    if cpu_perf:
+        cpuperf = CPUPerfRunner(perftest=perftest, log_file=cpu_perf)
+    else:
+        cpuperf = DummyContext()
+
+
+    Server = LikwidPerfTestServer
+    Client = PerfTestClient
+
+    if perftest.startswith("fio"):
+        Server = LikwidFioServer
+        Client = FioClient
+
+    server = Server(print_output=verbose,
+                    cpu="S{}:0".format(socket), mbw=mbw,
+                    block_size=size, duration=duration, mmap=mmap,
+                    log_file=log_file,
+                    command=perftest,
+                    test_args=test_args)
+
+    client = Client(host=client, block_size=size, duration=duration,
+                    command=perftest, wait_for=True,
+                    log_file=client_log_file,
+                    test_args=test_args)
+
+    with cpuperf, mbw, server, client:
+        pass
+
+    server.calculate_results(duration=duration)
+    client.calculate_results(duration=duration)
+
+    return {"rdma_bw": server.bandwidth() or client.bandwidth(),
+            "rdma_lat": server.latency() or client.latency(),
+            "rdma_vol": server.volume() or client.volume(),
+            "mbw_stats": server.mbw_stats,
+            "likwid_stats": server.likwid_stats,
+            "likwid_units": server.likwid_units,
+            "server_time": server.time_stats,
+            "client_time": client.time_stats}
+
+
+def print_results(results, indent=0):
+    results["ind"] = " "*indent
+    tmpl = ""
+
+    results["rdma_bw"] = Suffix(results["rdma_bw"], unit="B/s")
+    results["rdma_vol"] = Suffix(results["rdma_vol"], unit="B")
+
+    if results["rdma_bw"]:
+        tmpl += "{ind}RDMA Bandwidth            {rdma_bw:>10.2f}\n"
+    if results["rdma_lat"]:
+        tmpl += "{ind}RDMA Latency              {rdma_lat[avg]:>10.2f} us"
+        if results["rdma_lat"]["max"]:
+            tmpl += "        (max: {rdma_lat[max]:.2f}, min: {rdma_lat[min]:.2f})\n"
+        else:
+            tmpl += "\n"
+
+    tmpl += "{ind}RDMA Data Volume:         {rdma_vol:>10.2f}\n"
+
+    if results["server_time"]:
+        tmpl += "{ind}Server CPU Time           {server_time[total]:>10.2f} s\n"
+        tmpl += "{ind}Server Duration           {server_time[duration]:>10.2f} s"
+        tmpl += "  ({server_time[cpu_percent_duration]:5.1f}%)\n"
+        tmpl += "{ind}Server Elapsed Time       {server_time[real]:>10.2f} s"
+        tmpl += "  ({server_time[cpu_percent_total]:5.1f}%)\n"
+
+    if results["client_time"]:
+        tmpl += "{ind}Client CPU Time           {client_time[total]:>10.2f} s\n"
+        tmpl += "{ind}Client Duration           {client_time[duration]:>10.2f} s"
+        tmpl += "  ({client_time[cpu_percent_duration]:5.1f}%)\n"
+        tmpl += "{ind}Client Elapsed Time       {client_time[real]:>10.2f} s"
+        tmpl += "  ({client_time[cpu_percent_total]:5.1f}%)\n"
+
+    if results["mbw_stats"]:
+        results["mbw_stats"]["avg"] = Suffix(results["mbw_stats"]["avg"], "B/s")
+        results["mbw_stats"]["max"] /= results["mbw_stats"]["avg"].div
+        results["mbw_stats"]["min"] /= results["mbw_stats"]["avg"].div
+        results["mbw_stats"]["volume"] = Suffix(results["mbw_stats"]["volume"], "B")
+
+        tmpl += ("{ind}MBW Background Bandwidth  {mbw_stats[avg]:>10.2f} "
+                 "    (max: {mbw_stats[max]:.2f}, min: {mbw_stats[min]:.2f})\n" +
+                 "{ind}MBW Data Volume           {mbw_stats[volume]:>10.1f}\n")
+
+    tmpl += ("{ind}LikWid Memory Data Volume {likwid_stats[Memory data volume]:>10.1f} "
+             "{likwid_units[Memory data volume]}\n")
+    tmpl += ("{ind}Total DDR Write BW        {likwid_stats[Memory Write BW]:>10.1f} "
+             "{likwid_units[Memory Write BW]}\n")
+    tmpl += ("{ind}Total DDR Read BW         {likwid_stats[Memory Read BW]:>10.1f} "
+             "{likwid_units[Memory Read BW]}\n")
+
+
+    print(tmpl.format(**results))
+
+def check_mmap_dev(mmap):
+    try:
+        with open(mmap, "a"):
+            pass
+    except IOError as e:
+        if e.errno != errno.EACCES:
+            raise
+
+        print("Permission denied accessing {}".format(mmap))
+        print()
+
+        sudo_cmd = ["sudo", "chown", getpass.getuser(), mmap]
+        print("Run this sudo command? (assuming you trust us)")
+        print(" ".join(sudo_cmd))
+        res = raw_input("(Y/n) ")
+        if res.strip() and res[0].strip().lower() == 'n':
+            sys.exit(1)
+
+        sp.check_call(sudo_cmd)
+        print()
+
+        with open(mmap, "a"):
+            pass
+
+if __name__ == "__main__":
+    import argparse
+
+    p = argparse.ArgumentParser()
+    p.add_argument("-c", "--client", default="flash-rdma",
+                   help="host to run the perftest client on (the server "
+                        "is run locally), default: %(default)s")
+    p.add_argument("-C", "--cpu-perf", type=argparse.FileType('w'),
+                   help="run cpu perf in the background and save the log to "
+                   "file specified")
+    p.add_argument("-D", "--duration", type=int, default=5,
+                   help="duration, in seconds to run the perftest for, "
+                        "default: %(default)s")
+    p.add_argument("-s", "--size", type=parse_suffix, default=8388608,
+                   help="RDMA message size in bytes (set <2 for all sizes), "
+                        "default: %(default)s")
+    p.add_argument("-L", "--log-file", type=argparse.FileType('w'),
+                   help="save command output to a log file")
+    p.add_argument("--mmap", metavar="DEV",
+                   help="device to use as an RDMA target, default: %(default)s")
+    p.add_argument("-p", "--perftest", default="ib_write_bw",
+                   help="which perftest binary to use, default: %(default)s")
+    p.add_argument("-S", "--socket", type=int, default=0,
+                   help="cpu socket to pin the processes to (should have the same "
+                        "locality as the device specified in --mmap), "
+                        "default: %(default)s")
+    p.add_argument("-v", "--verbose", action="count",
+                   help="print command output to stdout")
+    p.add_argument("test_args", nargs=argparse.REMAINDER,
+                   help="extra arguments are passed to the pertfest run")
+    options = p.parse_args()
+
+    if "--" in options.test_args:
+        options.test_args.remove("--")
+
+    try:
+
+        opts = options.__dict__
+        mmap = opts.pop('mmap')
+
+        if mmap:
+            check_mmap_dev(mmap)
+
+        if opts['size']<2:
+            sizes = (int(2**exp) for exp in range(1,24))
+        else:
+            sizes = [int(opts['size'])]
+
+        if opts['log_file']:
+            fname = opts['log_file'].name
+            fname, ext = os.path.splitext(fname)
+            fname = fname + "_client" + ext
+            try:
+                opts['client_log_file'] = open(fname, "w")
+            except IOError as e:
+                print(e)
+                sys.exit(1)
+
+        for size in sizes:
+
+            opts['size'] = size
+
+            print("Running system memory test\t({}, {:.0f})."
+                  .format(opts['perftest'], Suffix(opts['size'])))
+            mem_res = run_test(**opts)
+
+            if mmap:
+                print("Running mmap memory test\t({}, {:.0f})."
+                      .format(opts['perftest'], Suffix(opts['size'])))
+                mmap_res = run_test(mmap=mmap, **opts)
+
+            print()
+            print()
+            print("{} with system memory:".format(options.perftest))
+            print_results(mem_res, 2)
+
+            if mmap:
+                print("{} with {}:".format(options.perftest, mmap))
+                print_results(mmap_res, 2)
+
+    except KeyboardInterrupt:
+        print()
+        print()
+        pass
+    except (OSError, ProcRunnerException) as e:
+        print()
+        print()
+        print(e)

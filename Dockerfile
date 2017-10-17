@@ -179,6 +179,11 @@ COPY tools/nvmeof/client/*.fio /root/fio/
 COPY tools/rdma/bnxtnvm /usr/local/bin
 COPY tools/rdma/brcm_counters /usr/local/bin
 
+# Copy in the perform python script which automates a pile of the
+# perftest testing.
+
+COPY tools/rdma/perform /usr/local/bin
+
 # Now add a local user called rdma-user so we don't have to execute things
 # as root inside the container. We also create a rdma group so we can
 # give the user access to H/W as needed.
