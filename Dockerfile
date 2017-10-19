@@ -121,11 +121,13 @@ RUN make install
 # enough to support CX5 so we copy in a more recent release. We might
 # want to change this down the road. Note that this .deb was edited to
 # remove the libumad5 dependency since inifiband-diags now provides
-# that.
+# that. Also install the simple counter script.
 
 WORKDIR /root
 COPY tools/rdma/mstflint_4.6.0-1_amd64.deb .
 RUN dpkg -i mstflint_4.6.0-1_amd64.deb
+
+COPY tools/rdma/mlnx_counters /usr/local/bin
 
 # Install the switchtec-user and nvmetcli cli program via github. This
 # is because  we don't have packages for them yet. Also install
@@ -164,12 +166,6 @@ COPY tools/nvmeof/server/unsetup_nvmet /usr/local/bin
 
 COPY tools/nvmeof/client/connect /usr/local/bin
 
-# Copy the fio scripts into a fio folder.
-
-WORKDIR /root
-RUN mkdir fio
-COPY tools/nvmeof/client/*.fio /root/fio/
-
 # Now perform some Broadcom NetExtreme specific steps. This includes
 # installing some tools. Note that for these RNICs to work we need
 # certain BRCM drivers and the upstream version is not always the ones
@@ -184,12 +180,32 @@ COPY tools/rdma/brcm_counters /usr/local/bin
 
 COPY tools/rdma/perform /usr/local/bin
 
+# Copy a tmux based script so we can setup windows nicely inside the
+# docker container.
+
+COPY tools/tmux/run-tmux /usr/local/bin
+
+# Update the pciids file so we pull in the Eideticom VID and DID
+# information.
+
+RUN update-pciids
+
 # Now add a local user called rdma-user so we don't have to execute things
-# as root inside the container. We also create a rdma group so we can
-# give the user access to H/W as needed.
+# as root inside the container. We give this user sudo rights with no
+# password requirements.
 
 RUN useradd -ms /bin/bash rdma-user
 RUN echo "rdma-user:rdma" | chpasswd
-RUN usermod -aG sudo rdma-user
-USER rdma-user
+RUN echo "rdma-user ALL=(ALL) NOPASSWD:ALL" | tee -a /etc/sudoers
+
+# Copy the fio scripts into a fio folder for the rdma-user
+
 WORKDIR /home/rdma-user
+RUN mkdir fio
+COPY tools/nvmeof/client/*.fio /root/fio/
+
+# Now switch to our new user and switch the working folder to their
+# home folder so we are ready to be attached too.
+
+WORKDIR /home/rdma-user
+USER rdma-user

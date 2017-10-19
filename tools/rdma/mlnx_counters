@@ -1,0 +1,11 @@
+#!/bin/bash
+
+function print {
+    echo -n "$1 : tx_bytes :"
+    cat /sys/class/infiniband/${1}/ports/1/counters/port_xmit_data
+    echo -n "$1 : rx_bytes :"
+    cat /sys/class/infiniband/${1}/ports/1/counters/port_rcv_data
+}
+
+print mlx5_0
+print mlx5_1
