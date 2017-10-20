@@ -109,9 +109,9 @@ WORKDIR /root
 RUN mkdir perftest
 WORKDIR /root/perftest
 RUN git init && \
-    git remote add origin https://github.com/linux-rdma/perftest.git
+    git remote add origin https://github.com/sbates130272/perftest.git
 RUN git fetch origin
-RUN git checkout -b perftest V4.1-0.2
+RUN git checkout -b perftest origin/rdma-cm-client-bind
 RUN ./autogen.sh
 RUN ./configure
 RUN make
@@ -148,6 +148,18 @@ WORKDIR /root/nvme-cli
 RUN git checkout -b nvme-cli v1.4
 RUN make
 RUN make install
+
+# Install p2pmem-test. We pull a tag for this like we do for other
+# things to ensure a consistent environment.
+
+WORKDIR /root
+RUN git clone https://github.com/sbates130272/p2pmem-test.git
+WORKDIR /root/p2pmem-test
+RUN git checkout -b p2pmem v1.0
+RUN git submodule init
+RUN git submodule update
+RUN make
+RUN cp p2pmem-test /usr/local/bin
 
 # Copy in the required tools in the tools subfolder and either install
 # or place them in a suitable place as required. NB some of these
