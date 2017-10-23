@@ -72,6 +72,8 @@ done
 
 docker run \
        --privileged \
+       --cap-add=ALL \
+       -v /lib/modules:/lib/modules \
        -v /dev:/dev \
        --net=host \
        -it $LABEL
