@@ -14,15 +14,15 @@
 
 NVME_DEV=${NVME_DEV:-nvme0}
 NVME_NS=${NVME_NS:-1}
-NVME_PCI=${NVME_PCI:-0000:04:00.0}
+NVME_PCI=${NVME_PCI:-0000:09:00.0}
 USE_CMB=${USE_CMB:-0}
 NUM_P2P_QUEUES=${NUM_P2P_QUEUES:-1}
 
-OFFLOAD_MEM_START=${OFFLOAD_MEM_START:-0x300000000}
-OFFLOAD_MEM_SIZE=${OFFLOAD_MEM_SIZE:-2048}
+OFFLOAD_MEM_START=${OFFLOAD_MEM_START:-0x280000000}
+OFFLOAD_MEM_SIZE=${OFFLOAD_MEM_SIZE:-1024}
 OFFLOAD_BUFFER_SIZE=${OFFLOAD_BUFFER_SIZE:-128}
 
-CFG=${CFG:-/sys/kernel/config/nvmet/}
+CFG=${CFG:-/sys/kernel/config/}
 P2PMEM=${P2PMEM:-none}
 PORT=${PORT:-4420}
 IP=${IP:-172.18.1.1}
@@ -45,7 +45,7 @@ modprobe -r nvme
  # prefer. Note we need to sleep for a while to make sure the binding
  # has occurred.
 
-modprobe nvme num_p2p_queues=$NUM_P2P_QUEUES use_cmb=$USE_CMB
+modprobe nvme num_p2p_queues=$NUM_P2P_QUEUES
 modprobe nvmet
 modprobe nvmet-rdma \
 	 offload_mem_start=$OFFLOAD_MEM_START \
@@ -65,7 +65,11 @@ cat /sys/block/${NVME_NS}/device/num_p2p_queues
   # setup_nvmeof in order to do this. However note there are some
   # additional configfs entries for the offload.
 
-cd $CFG
+if [ $(mount | grep -c $CFG) != 1 ]; then
+    mount -t configfs none $CFG
+fi
+
+cd $CFG/nvmet
 
 mkdir subsystems/offload
 cd subsystems/offload
@@ -74,11 +78,10 @@ echo 1 > attr_allow_any_host
 mkdir namespaces/1
 cd namespaces/1
 echo -n /dev/$NVME_NS > device_path
-echo $NVME_PCI
 echo -n $NVME_PCI > pci_device_path
 echo 1 > enable
 
-cd $CFG
+cd $CFG/nvmet
 
 mkdir ports/1
 cd ports/1
@@ -91,4 +94,4 @@ if [ $P2PMEM != "none" ]; then
     echo yes > allow_p2pmem
 fi
 
-ln -s $CFG/subsystems/offload subsystems/offload
+ln -s $CFG/nvmet/subsystems/offload subsystems/offload
