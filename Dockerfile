@@ -28,10 +28,12 @@ RUN apt-get update && apt-get install -y \
     cmake \
     dh-make \
     dh-systemd \
+    emacs24-nox \
     fio \
     gcc \
     git \
     htop \
+    kmod \
     iputils-ping \
     libncurses5-dev \
     libmuparser2v5 \
@@ -214,7 +216,7 @@ RUN echo "rdma-user ALL=(ALL) NOPASSWD:ALL" | tee -a /etc/sudoers
 
 WORKDIR /home/rdma-user
 RUN mkdir fio
-COPY tools/nvmeof/client/*.fio /root/fio/
+COPY tools/nvmeof/client/*.fio /home/rdma-user/fio/
 
 # Now switch to our new user and switch the working folder to their
 # home folder so we are ready to be attached too.
