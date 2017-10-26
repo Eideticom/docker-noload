@@ -123,13 +123,11 @@ RUN make install
 # enough to support CX5 so we copy in a more recent release. We might
 # want to change this down the road. Note that this .deb was edited to
 # remove the libumad5 dependency since inifiband-diags now provides
-# that. Also install the simple counter script.
+# that.
 
 WORKDIR /root
 COPY tools/rdma/mstflint_4.6.0-1_amd64.deb .
 RUN dpkg -i mstflint_4.6.0-1_amd64.deb
-
-COPY tools/rdma/mlnx_counters /usr/local/bin
 
 # Install the switchtec-user and nvmetcli cli program via github. This
 # is because  we don't have packages for them yet. Also install
@@ -188,7 +186,11 @@ COPY tools/nvmeof/client/connect /usr/local/bin
 # script will only work on upstream kernel at 4.14 or newer...
 
 COPY tools/rdma/bnxtnvm /usr/local/bin
-COPY tools/rdma/brcm_counters /usr/local/bin
+
+# Install the counter script. Note that the Broadcom counters will
+# only work on upstream kernel at 4.14 or newer... 
+
+COPY tools/rdma/counters /usr/local/bin
 
 # Copy in the perform python script which automates a pile of the
 # perftest testing.

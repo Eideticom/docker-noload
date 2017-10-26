@@ -1,0 +1,42 @@
+#!/bin/bash
+# A simple shell script to print hardware counters for the RNICs
+# supported in this repo.
+
+MELLANOX=${MELLANOX:-yes}
+BROADCOM=${BRAODCOM:-yes}
+INFINIBAND=${INFINIBAND:-/sys/class/infiniband}
+
+function printb {
+    echo -n "$1 : tx_bytes :"
+    cat /sys/class/infiniband/${1}/ports/1/hw_counters/tx_bytes
+    echo -n "$1 : rx_bytes :"
+    cat /sys/class/infiniband/${1}/ports/1/hw_counters/rx_bytes
+}
+
+function printm {
+    echo -n "$1 : tx_bytes :"
+    cat /sys/class/infiniband/${1}/ports/1/counters/port_xmit_data
+    echo -n "$1 : rx_bytes :"
+    cat /sys/class/infiniband/${1}/ports/1/counters/port_rcv_data
+}
+
+if [ ! -d  ${INFINIBAND} ]; then
+    echo "No ${INFINIBAND} directory!"
+    exit -1
+fi
+
+shopt -s nullglob
+
+cd $INFINIBAND
+
+if [ $MELLANOX != "no" ]; then
+    for nic in mlx* ; do 
+	printm $nic
+    done;
+fi
+
+if [ $BROADCOM != "no" ]; then
+    for nic in bnxt* ; do 
+	printb $nic
+    done;
+fi

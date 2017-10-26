@@ -6,18 +6,12 @@
 # GUI.
 
 SWITCHTEC=${SWITCHTEC:-no}
-RDMA=${RDMA:-mellanox}
 
 TMUX="tmux new session \;"
 TMUX+=" split-window -h -p 50 \;"
 TMUX+=" split-window -v -p 50 \;"
 TMUX+=" split-window -h -p 50 \;"
-
-if [ $RDMA = "mellanox" ]; then
-    TMUX+=' send-keys "watch -n 1 sudo mlnx_counters" C-m \;'
-else
-    TMUX+=' send-keys "watch -n 1 sudo brcm_counters" C-m \;'
-fi
+TMUX+=' send-keys "watch -n 1 sudo counters" C-m \;'
 TMUX+=" select-pane -t 1 \;"
 
 if [ $SWITCHTEC != "no" ]; then
