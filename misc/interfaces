@@ -1,0 +1,44 @@
+# interfaces(5) file used by ifup(8) and ifdown(8)
+auto lo
+iface lo inet loopback
+
+auto mlx0p1
+iface mlx0p1 inet static
+  address 172.18.1.1
+  netmask 255.255.255.0
+
+auto mlx1p1
+iface mlx1p1 inet static
+  address 172.18.11.1
+  netmask 255.255.255.0
+
+auto brcm0p1
+iface brcm0p1 inet static
+  address 172.18.2.1
+  netmask 255.255.255.0
+
+auto brcm0p2
+iface brcm0p2 inet static
+  address 172.18.12.1
+  netmask 255.255.255.0
+
+auto brcm1p1
+iface brcm1p1 inet static
+  address 172.18.3.1
+  netmask 255.255.255.0
+
+auto brcm1p2
+iface brcm1p2 inet static
+  address 172.18.13.1
+  netmask 255.255.255.0
+
+auto brcm2p1
+iface brcm2p1 inet static
+  address 172.18.4.1
+  netmask 255.255.255.0
+
+auto brcm3p1
+iface brcm3p1 inet static
+  address 172.18.14.1
+  netmask 255.255.255.0
+
