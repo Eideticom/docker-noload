@@ -139,6 +139,7 @@ COPY tools/rdma/mlnx_counters /usr/local/bin
 WORKDIR /root
 RUN git clone https://github.com/Microsemi/switchtec-user.git
 WORKDIR /root/switchtec-user
+RUN git checkout -b switchtec v0.7
 RUN make install
 
 WORKDIR /root
