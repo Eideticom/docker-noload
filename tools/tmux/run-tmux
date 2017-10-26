@@ -1,8 +1,9 @@
 #!/bin/bash
 #
 # A simple script to setup the tmux windows when running RDMA
-#tests. Depending on the RDMA vendor we do a few things a little
-#differnetly. Also if there is a Microsemi Switchtec we call its GUI.
+# tests. Depending on the RDMA vendor we do a few things a little
+# differnetly. Also if there is a Microsemi Switchtec we call its
+# GUI.
 
 SWITCHTEC=${SWITCHTEC:-no}
 RDMA=${RDMA:-mellanox}
@@ -15,13 +16,13 @@ TMUX+=" split-window -h -p 50 \;"
 if [ $RDMA = "mellanox" ]; then
     TMUX+=' send-keys "watch -n 1 sudo mlnx_counters" C-m \;'
 else
-    TMUX+=' send-keys "watch -n 1 sudo bnxt_counters" C-m \;'
+    TMUX+=' send-keys "watch -n 1 sudo brcm_counters" C-m \;'
 fi
 TMUX+=" select-pane -t 1 \;"
 
 if [ $SWITCHTEC != "no" ]; then
     TMUX+=" split-window -h -p 50 \;"
-    TMUX+=' send-keys "sudo switchtec gui $SWITCHTEC"" C-m \;'
+    TMUX+=' send-keys "sudo switchtec gui $SWITCHTEC" C-m \;'
     TMUX+=" select-pane -t 1 \;"
 fi
 
