@@ -28,6 +28,7 @@ RUN apt-get update && apt-get install -y \
     cmake \
     dh-make \
     dh-systemd \
+    ethtool \
     emacs24-nox \
     fio \
     gcc \
