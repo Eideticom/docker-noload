@@ -193,6 +193,11 @@ COPY tools/rdma/bnxtnvm /usr/local/bin
 
 COPY tools/rdma/counters /usr/local/bin
 
+# Install the rebind-nvme script which is useful to changing the
+# module parameters on a NVMe SSD.
+
+COPY tools/nvme/rebind-nvme /usr/local/bin
+
 # Copy in the perform python script which automates a pile of the
 # perftest testing.
 

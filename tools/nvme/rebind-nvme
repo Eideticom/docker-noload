@@ -1,0 +1,13 @@
+#!/bin/bash
+# A simple script to unbind an NVMe device from the nvme driver, alter
+# the use_cmb module parameter and rebind the device.
+
+NVME=${NVME:-00:00.0}
+USE_CMB=${USE_CMB:-0}
+
+echo $NVME
+echo $USE_CMB
+
+echo ${NVME} > /sys/bus/pci/drivers/nvme/unbind
+echo $USE_CMB > /sys/module/nvme/parameters/use_cmb
+echo ${NVME} > /sys/bus/pci/drivers/nvme/bind
