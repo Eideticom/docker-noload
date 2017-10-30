@@ -58,7 +58,20 @@ RUN apt-get update && apt-get install -y \
     sysstat \
     tmux \
     traceroute \
-    wget
+    wget \
+    autoconf \
+    build-essential \
+    libpthread-stubs0-dev \
+    libtool \
+    libudev-dev \
+    nasm
+
+RUN git clone https://github.com/01org/isa-l.git
+WORKDIR isa-l
+RUN ./autogen.sh
+RUN ./configure
+RUN make
+RUN make install
 
 # Install rdma-core. For now get this from GitHub since we don't have
 # a package. We build a known good tag for consistency reasons as

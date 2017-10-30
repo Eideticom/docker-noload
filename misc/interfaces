@@ -9,7 +9,7 @@ iface mlx0p1 inet static
 
 auto mlx1p1
 iface mlx1p1 inet static
-  address 172.18.11.1
+  address 172.18.1.2
   netmask 255.255.255.0
 
 auto brcm0p1
