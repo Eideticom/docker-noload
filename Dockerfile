@@ -66,6 +66,7 @@ RUN apt-get update && apt-get install -y \
     libudev-dev \
     nasm
 
+#ISA-L code
 RUN git clone https://github.com/01org/isa-l.git
 WORKDIR isa-l
 RUN ./autogen.sh
