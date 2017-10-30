@@ -209,11 +209,6 @@ COPY tools/rdma/counters /usr/local/bin
 
 COPY tools/nvme/rebind-nvme /usr/local/bin
 
-# Copy in the perform python script which automates a pile of the
-# perftest testing.
-
-COPY tools/rdma/perform /usr/local/bin
-
 # Copy a tmux based script so we can setup windows nicely inside the
 # docker container.
 
