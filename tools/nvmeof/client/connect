@@ -1,10 +1,14 @@
 #!/bin/bash
 #
 # Simple wrapper for nvme discover command. Probably needs to be run
-#as root.
+# as root. Use IPH to bind to a local interface if needed.
 
-IPH=${IP:-172.18.11.1}
-IPT=${IP:-172.18.1.1}
+IPH=${IPH:-none}
+IPT=${IPT:-172.18.1.1}
 NAMESPACE=${NAMESPACE:-eideticom}
 
-nvme connect -t rdma -a $IPT -w $IPH -n $NAMESPACE
+if [ $IPH != "none" ]; then
+    nvme connect -t rdma -a $IPT -w $IPH -n $NAMESPACE
+else
+    nvme connect -t rdma -a $IPT -n $NAMESPACE
+fi
