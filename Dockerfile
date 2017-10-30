@@ -30,7 +30,6 @@ RUN apt-get update && apt-get install -y \
     dh-systemd \
     ethtool \
     emacs24-nox \
-    fio \
     gcc \
     git \
     htop \
@@ -162,6 +161,18 @@ RUN git submodule init
 RUN git submodule update
 RUN make
 RUN cp p2pmem-test /usr/local/bin
+
+# Install fio. We don't pull it from the package because we want a
+# good up to date version and we want it configured for us with things
+# like the rdma ioengine.
+
+WORKDIR /root
+RUN git clone https://github.com/axboe/fio.git
+WORKDIR /root/fio
+RUN git checkout -b fio fio-3.1
+RUN ./configure
+RUN make
+RUN make install
 
 # Copy in the required tools in the tools subfolder and either install
 # or place them in a suitable place as required. NB some of these
