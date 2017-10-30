@@ -100,17 +100,6 @@ p2pmem device in your system.
 8. For the fabrics target try adding P2PMEM=yes to the setup_nvmet
 call to enable it.
 
-## The pipework submodule
-
-[N.B. Right now we don't use pipework since we run in priviliged
-mode. Keeping this for now but we may drop it in the future.]
-
-We use pipework to pass the network interfaces from the host into the
-container. This is utilized by the run-rdma script but you can also do
-it by hand using commands like:
-
-./pipework --direct-phys mlx1p1 -i mlx1p1 <container id> <ip address>
-
 ## The tools subfolder
 
 The tools subfolder containers a number of useful userspace tools that
