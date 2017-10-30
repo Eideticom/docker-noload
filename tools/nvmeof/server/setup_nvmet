@@ -8,14 +8,18 @@
 
 set -e
 
-CFG=${CFG:-/sys/kernel/config/nvmet/}
+CFG=${CFG:-/sys/kernel/config/}
 SUBSYS=${SUBSYS:-eideticom}
 DEV=${DEV:-/dev/nvme0n1}
 P2PMEM=${P2PMEM:-none}
 PORT=${PORT:-4420}
 IP=${IP:-172.18.1.1}
 
-cd $CFG
+if [ $(mount | grep -c $CFG) != 1 ]; then
+    mount -t configfs none $CFG
+fi
+
+cd $CFG/nvmet
 
 mkdir subsystems/$SUBSYS
 cd subsystems/$SUBSYS
@@ -26,7 +30,7 @@ cd namespaces/1
 echo -n $DEV > device_path
 echo 1 > enable
 
-cd $CFG
+cd $CFG/nvmet
 
 mkdir ports/1
 cd ports/1
@@ -39,4 +43,4 @@ if [ $P2PMEM != "none" ]; then
     echo yes > allow_p2pmem
 fi
 
-ln -s $CFG/subsystems/$SUBSYS subsystems/$SUBSYS
+ln -s $CFG/nvmet/subsystems/$SUBSYS subsystems/nvmet/$SUBSYS
