@@ -16,6 +16,7 @@ BROADCOM=${BROADCOM:-yes}
 CAVIUM=${CAVIUM:-yes}
 MELLANOX=${MELLANOX:-yes}
 SWITCHTEC=${SWITCHTEC:-yes}
+CFG=${CFG:-/sys/kernel/config}
 
   # Build list of necessary kernel modules
 
@@ -68,6 +69,15 @@ done
 #
 
 # TBD: Add this check
+
+# Ensure that configfs is mounted at the desired location. If not we
+# mount it. It appears that doing this inside the container can cause
+# issues with symbolic links.
+
+if [ $(mount | grep -c $CFG) != 1 ]; then
+    echo "Mount configfs at ${CFG} as root and re-run."
+    exit 1
+fi
 
 # Now start the contain running. We do this in detached mode and we
 # can then either reattach to it or ssh in to it to continue working
