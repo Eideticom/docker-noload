@@ -2,8 +2,9 @@
 # A simple shell script to print hardware counters for the RNICs
 # supported in this repo.
 
+BROADCOM=${BROADCOM:-yes}
+CAVIUM=${CAVIUM:-yes}
 MELLANOX=${MELLANOX:-yes}
-BROADCOM=${BRAODCOM:-yes}
 INFINIBAND=${INFINIBAND:-/sys/class/infiniband}
 
 function printb {
@@ -13,7 +14,7 @@ function printb {
     cat /sys/class/infiniband/${1}/ports/1/hw_counters/rx_bytes
 }
 
-function printm {
+function printcm {
     echo -n "$1 : tx_bytes :"
     cat /sys/class/infiniband/${1}/ports/1/counters/port_xmit_data
     echo -n "$1 : rx_bytes :"
@@ -29,14 +30,19 @@ shopt -s nullglob
 
 cd $INFINIBAND
 
-if [ $MELLANOX != "no" ]; then
-    for nic in mlx* ; do 
-	printm $nic
-    done;
-fi
-
 if [ $BROADCOM != "no" ]; then
     for nic in bnxt* ; do 
 	printb $nic
     done;
 fi
+if [ $CAVIUM != "no" ]; then
+    for nic in qedr* ; do 
+	printcm $nic
+    done;
+fi
+if [ $MELLANOX != "no" ]; then
+    for nic in mlx* ; do 
+	printcm $nic
+    done;
+fi
+

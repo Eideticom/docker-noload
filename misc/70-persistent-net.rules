@@ -5,6 +5,11 @@ SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="00:0a:f7:b7:3b:40", NAME="brcm1
 SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="00:0a:f7:b7:3b:41", NAME="brcm1p2"
 SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="00:0a:f7:c4:b1:00", NAME="brcm2p1"
 SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="00:0a:f7:c4:af:30", NAME="brcm3p1"
+# Rename the Cavium/QLogic RNICs
+SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="f4:e9:d4:ed:b3:0a", NAME="cav0p1"
+SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="f4:e9:d4:ed:b3:0b", NAME="cav0p2"
+SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="f4:e9:d4:ed:b3:64", NAME="cav1p1"
+SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="f4:e9:d4:ed:b3:65", NAME="cav1p2"
 # Rename the Mellanox RNICS
 SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="ec:0d:9a:6e:2d:78", NAME="mlx0p1"
 SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="ec:0d:9a:6e:2e:ec", NAME="mlx1p1"

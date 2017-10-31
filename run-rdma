@@ -12,8 +12,9 @@
   # Command line variables
 
 LABEL=${LABEL:-rdma:latest}
-MELLANOX=${MELLANOX:-yes}
 BROADCOM=${BROADCOM:-yes}
+CAVIUM=${CAVIUM:-yes}
+MELLANOX=${MELLANOX:-yes}
 SWITCHTEC=${SWITCHTEC:-yes}
 
   # Build list of necessary kernel modules
@@ -28,11 +29,14 @@ MODULES=(ib_uverbs \
 	     nvmet_rdma \
 	     nvme_rdma)
 
-if [ $MELLANOX == "yes" ]; then
-    MODULES+=(mlx5_core mlx5_ib)
-fi
 if [ $BROADCOM == "yes" ]; then
     MODULES+=(bnxt bnxt_re)
+fi
+if [ $CAVIUM == "yes" ]; then
+    MODULES+=(qed qede qedr)
+fi
+if [ $MELLANOX == "yes" ]; then
+    MODULES+=(mlx5_core mlx5_ib)
 fi
 if [ $SWITCHTEC == "yes" ]; then
     MODULES+=(switchtec)
@@ -64,7 +68,6 @@ done
 #
 
 # TBD: Add this check
-
 
 # Now start the contain running. We do this in detached mode and we
 # can then either reattach to it or ssh in to it to continue working
