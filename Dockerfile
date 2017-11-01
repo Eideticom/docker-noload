@@ -61,66 +61,6 @@ RUN apt-get update && apt-get install -y \
     vim \
     wget
 
-# Install rdma-core. For now get this from GitHub since we don't have
-# a package. We build a known good tag for consistency reasons as
-# master continiously moves. Also use dpkg-buildpackage to generate
-# the .deb files to install.
-
-WORKDIR /root
-RUN mkdir rdma-core
-WORKDIR /root/rdma-core
-RUN git init && \
-    git remote add origin https://github.com/linux-rdma/rdma-core.git
-RUN git fetch origin
-RUN git checkout -b rdma v15
-WORKDIR /root
-RUN tar cvfz rdma-core_15.orig.tar.gz rdma-core
-WORKDIR /root/rdma-core
-RUN dpkg-buildpackage -d
-WORKDIR /root/
-RUN dpkg -i --force-overwrite \
-    rdma-core_15-1_amd64.deb \
-    libibverbs1_15-1_amd64.deb \
-    libibverbs-dev_15-1_amd64.deb \
-    libibcm1_15-1_amd64.deb \
-    ibverbs-utils_15-1_amd64.deb \
-    ibverbs-providers_15-1_amd64.deb \
-    rdmacm-utils_15-1_amd64.deb \
-    librdmacm1_15-1_amd64.deb \
-    librdmacm-dev_15-1_amd64.deb \
-    libibumad3_15-1_amd64.deb \
-    libibumad-dev_15-1_amd64.deb
-
-# Install infiniband-diags and perftest. Both of these are now
-# upstreamed on the linux-rdma GitHub account.
-
-WORKDIR /root
-RUN mkdir infiniband-diags
-WORKDIR /root/infiniband-diags
-RUN git init && \
-    git remote add origin https://github.com/linux-rdma/infiniband-diags.git
-RUN git fetch origin
-RUN git checkout -b diags 2.0.0
-RUN ./autogen.sh
-RUN ./configure
-  # Next two lines are a hack to get the build to work
-RUN ln -s /usr/include/infiniband/complib /usr/local/include/complib
-RUN ln -s /usr/include/infiniband/iba /usr/local/include/iba
-RUN make
-RUN make install
-
-WORKDIR /root
-RUN mkdir perftest
-WORKDIR /root/perftest
-RUN git init && \
-    git remote add origin https://github.com/sbates130272/perftest.git
-RUN git fetch origin
-RUN git checkout -b perftest origin/rdma-cm-client-bind
-RUN ./autogen.sh
-RUN ./configure
-RUN make
-RUN make install
-
 # Install mstflint. Note the Ubuntu Xenial version is not recent
 # enough to support CX5 so we copy in a more recent release. We might
 # want to change this down the road. Note that this .deb was edited to
@@ -220,6 +160,44 @@ COPY tools/tmux/run-tmux /usr/local/bin
 # information.
 
 RUN update-pciids
+
+# Add the broadcom specific user-space. We need this for now to get
+# the 100G NICs working in user-space. We got these instructions from
+# Broadcom on Oct 31st 2017. With luck these can be reverted to
+# upstream in time. Note this kills other RNIC vendors code.
+
+RUN apt-get update && apt-get install -y \
+    libibverbs-dev \
+    ibverbs-utils \
+    librdmacm1 \
+    rdmacm-utils \
+    infiniband-diags \
+    perftest
+
+WORKDIR /root
+RUN mkdir -p brcm
+WORKDIR /root/brcm
+COPY tools/brcm/libbnxt_re-20.8.0.6.tar.gz /root/brcm
+RUN tar xvfz libbnxt_re-20.8.0.6.tar.gz
+WORKDIR /root/brcm/libbnxt_re-20.8.0.6/
+RUN sh autogen.sh
+RUN ./configure --sysconfdir=/etc
+RUN make
+RUN make install all
+RUN cp src/.libs/libbnxt_re*.so /usr/lib/x86_64-linux-gnu/
+
+
+#TBD: Get kernel modules to build. For now we assume user has already
+#done this.
+#
+#RUN apt-get update && apt-get install -y \
+#    kernel-package
+#
+#WORKDIR /root/brcm
+#COPY tools/brcm/netxtreme-bnxt_en-1.8.26.tar.gz /root/brcm
+#RUN tar xvfz netxtreme-bnxt_en-1.8.26.tar.gz
+#WORKDIR /root/brcm/netxtreme-bnxt_en-1.8.26
+#RUN make
 
 # Now add a local user called rdma-user so we don't have to execute things
 # as root inside the container. We give this user sudo rights with no
