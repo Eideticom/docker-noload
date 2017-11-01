@@ -43,4 +43,4 @@ if [ $P2PMEM != "none" ]; then
     echo yes > allow_p2pmem
 fi
 
-ln -s $CFG/nvmet/subsystems/$SUBSYS subsystems/nvmet/$SUBSYS
+ln -s $CFG/nvmet/subsystems/$SUBSYS $CFG/nvmet/ports/1/subsystems/$SUBSYS
