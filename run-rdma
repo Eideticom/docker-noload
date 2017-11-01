@@ -11,7 +11,8 @@
 
   # Command line variables
 
-LABEL=${LABEL:-rdma:latest}
+LABEL=${LABEL:-rdma}
+TAG=${TAG:-latest}
 BROADCOM=${BROADCOM:-yes}
 CAVIUM=${CAVIUM:-yes}
 MELLANOX=${MELLANOX:-yes}
@@ -82,6 +83,10 @@ fi
 # Now start the contain running. We do this in detached mode and we
 # can then either reattach to it or ssh in to it to continue working
 # with it.
+
+if [ $TAG != "none" ]; then
+    LABEL+=":$TAG"
+fi
 
 docker run \
        --privileged \
