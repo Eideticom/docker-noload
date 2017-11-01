@@ -1,0 +1,5 @@
+# Cavium
+sudo IFACE0=cav0p1 IP0=172.18.5.1 IFACE1=cav1p1 IP1=172.18.6.1 parav_loopback
+sudo IP=172.18.5.1 setup_nvmet
+# Broadcom
+

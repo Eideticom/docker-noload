@@ -235,6 +235,11 @@ WORKDIR /home/rdma-user
 RUN mkdir fio
 COPY tools/nvmeof/client/*.fio /home/rdma-user/fio/
 
+# Copy the commands file, which contains some handy cut and pastes
+# into the home folder of the new user.
+
+COPY misc/commands /home/rdma-user
+
 # Now switch to our new user and switch the working folder to their
 # home folder so we are ready to be attached too.
 
