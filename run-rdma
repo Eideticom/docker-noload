@@ -61,16 +61,6 @@ for MODULE in ${MODULES[@]}; do
     modcheck $MODULE
 done
 
-# Ensure that the RNIC port(s) that we are going to pass through to
-# the container are in RoCE mode. If they are not we abort. Note we
-# don't (currently) support Infiniband. For example if you have
-# Mellanox RNICs you might want to run a command like:
-#
-# mstconfig -d 0000:04:00.0 set LINK_TYPE_P1=ETH
-#
-
-# TBD: Add this check
-
 # Ensure that configfs is mounted at the desired location. If not we
 # mount it. It appears that doing this inside the container can cause
 # issues with symbolic links.
