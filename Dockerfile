@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y \
     htop \
     kmod \
     iputils-ping \
+    libaio-dev \
     libncurses5-dev \
     libmuparser2v5 \
     libnl-3-dev \
