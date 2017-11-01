@@ -83,5 +83,6 @@ docker run \
        --cap-add=ALL \
        -v /lib/modules:/lib/modules \
        -v /dev:/dev \
+       -v /sys:/sys \
        --net=host \
        -it $LABEL
