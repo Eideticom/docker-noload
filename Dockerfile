@@ -57,6 +57,7 @@ RUN apt-get update && apt-get install -y \
     sysstat \
     tmux \
     traceroute \
+    vim \
     wget
 
 # Install rdma-core. For now get this from GitHub since we don't have
