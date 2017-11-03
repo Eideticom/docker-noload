@@ -5,6 +5,10 @@
 #
 # P2PMEM=yes ./setup-nvmet
 #
+# Note that if DEV is a block device then we just add that device to
+# the exposed subsystem. However if DEV is a char device and has
+# "nvme" in its name then we add all namespaces for that NVMe
+# controller to the subsystem.
 
 set -e
 
@@ -12,12 +16,9 @@ CFG=${CFG:-/sys/kernel/config/}
 SUBSYS=${SUBSYS:-eideticom}
 DEV=${DEV:-/dev/nvme0n1}
 P2PMEM=${P2PMEM:-none}
-PORT=${PORT:-4420}
+PORT=${PORT:-1}
+IPPORT=${IPPORT:-4420}
 IP=${IP:-172.18.1.1}
-
-if [ $(mount | grep -c $CFG) != 1 ]; then
-    mount -t configfs none $CFG
-fi
 
 cd $CFG/nvmet
 
@@ -25,18 +26,36 @@ mkdir subsystems/$SUBSYS
 cd subsystems/$SUBSYS
 echo 1 > attr_allow_any_host
 
-mkdir namespaces/1
-cd namespaces/1
-echo -n $DEV > device_path
-echo 1 > enable
+if [ -c $DEV ]; then
+    if [[ $DEV == *"nvme"* ]]; then
+	i=1
+	for ns in ${DEV}n*; do
+	    echo "Adding $ns..."
+	    mkdir namespaces/$i
+	    cd namespaces/$i
+	    echo -n $ns > device_path
+	    echo 1 > enable
+	    ((i++))
+	    cd ../../
+	done;
+    else
+	echo "Not an NVMe char device."
+	exit 1
+    fi
+else
+    mkdir namespaces/1
+    cd namespaces/1
+    echo -n $DEV > device_path
+    echo 1 > enable
+fi
 
 cd $CFG/nvmet
 
-mkdir ports/1
-cd ports/1
+mkdir ports/${PORT}
+cd ports/${PORT}
 echo -n ipv4 > addr_adrfam
 echo -n rdma > addr_trtype
-echo -n $PORT > addr_trsvcid
+echo -n $IPPORT > addr_trsvcid
 echo -n $IP > addr_traddr
 
 if [ $P2PMEM != "none" ]; then
