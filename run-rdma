@@ -12,11 +12,11 @@
   # Command line variables
 
 LABEL=${LABEL:-rdma}
-TAG=${TAG:-latest}
+TAG=${TAG:-brcm}
 BROADCOM=${BROADCOM:-yes}
-CAVIUM=${CAVIUM:-yes}
-MELLANOX=${MELLANOX:-yes}
-SWITCHTEC=${SWITCHTEC:-yes}
+CAVIUM=${CAVIUM:-no}
+MELLANOX=${MELLANOX:-no}
+SWITCHTEC=${SWITCHTEC:-no}
 CFG=${CFG:-/sys/kernel/config}
 
   # Build list of necessary kernel modules

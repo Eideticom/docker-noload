@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# A simple script to run an ib_read/write_bw test in tmux windows when running RDMA
+# tests. Depending on the RDMA vendor we do a few things a little
+# differnetly. Also if there is a Microsemi Switchtec we call its
+# GUI.
+
+MELLANOX=${MELLANOX:-no}
+
+if [ -z "$1" ]; then
+	echo usage: $0 size [read:write] [seconds]
+	exit 1
+fi
+
+if [ -z "$2" ] || [ "$2" == "read" ]; then
+	# Default to read
+	ib_cmd="sudo ib_read_bw"
+	result_file="read_results.txt"
+else
+	ib_cmd="sudo ib_write_bw"
+	result_file="write_results.txt"
+fi
+
+if [ -z "$3" ]; then
+	# Default to 10s
+	sec="10"
+else
+	sec="$3"
+fi
+
+to_bytes() {
+  for v in "$@"
+  do
+    echo $v | gawk \
+      'BEGIN{IGNORECASE = 1}
+       function printpower(n,b,p) {printf "%u\n", n*b^p; next}
+       /[0-9]$/{print $1;next};
+       /K(iB)?$/{printpower($1,  2, 10)};
+       /M(iB)?$/{printpower($1,  2, 20)};
+       /G(iB)?$/{printpower($1,  2, 30)};
+       /T(iB)?$/{printpower($1,  2, 40)};
+       /KB$/{    printpower($1, 10,  3)};
+       /MB$/{    printpower($1, 10,  6)};
+       /GB$/{    printpower($1, 10,  9)};
+       /TB$/{    printpower($1, 10, 12)}'
+  done
+}
+
+bytes=`to_bytes $1`
+
+if [ "$MELLANOX" == "yes" ]; then
+  iomem_dev="mlx5_1"
+  src_dev="mlx5_0"
+  src_ip="172.18.11.1"
+else
+  iomem_dev="bnxt_re1"
+  src_dev="bnxt_re0"
+  src_ip="172.18.14.1"
+fi
+
+
+if [ -e $result_file ]; then
+  first_cmd="$ib_cmd -x 1 -d $iomem_dev -s $bytes -D $sec --mmap /dev/p2pmem0 &"
+else
+  first_cmd="$ib_cmd -x 1 -d $iomem_dev -s $bytes -D $sec --mmap /dev/p2pmem0 | tail -3 | head -2 | tee -a $result_file &"
+  echo "$first_cmd" > $result_file
+fi
+
+sec_cmd="$ib_cmd -x 1 -d $src_dev -s $bytes -D $sec $src_ip"
+
+
+#echo $first_cmd
+#echo $sec_cmd
+eval $first_cmd
+sleep 1
+eval $sec_cmd
+

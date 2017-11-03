@@ -8,12 +8,22 @@
 #
 # [1] https://marc.info/?l=linux-rdma&m=150575871330293&w=2
 
+MELLANOX=${MELLANOX:-no}
+
+if [ "$MELLANOX" == "yes" ]; then
 IFACE0=${IFACE0:-mlx0p1}
 IFACE1=${IFACE1:-mlx1p1}
-LOOP_10=${LOOP_10:-10}
-LOOP_01=${LOOP_01:-20}
 IP0=${IP0:-172.18.1.1}
 IP1=${IP1:-172.18.11.1}
+else
+IFACE0=${IFACE0:-brcm2p1}
+IFACE1=${IFACE1:-brcm3p1}
+IP0=${IP0:-172.18.4.1}
+IP1=${IP1:-172.18.14.1}
+fi
+
+LOOP_10=${LOOP_10:-10}
+LOOP_01=${LOOP_01:-20}
 
 LOWPRI=20000
 HIPRI=0

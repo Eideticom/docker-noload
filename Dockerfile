@@ -30,6 +30,7 @@ RUN apt-get update && apt-get install -y \
     dh-systemd \
     ethtool \
     emacs24-nox \
+    gawk \
     gcc \
     git \
     htop \
@@ -124,6 +125,8 @@ RUN make install
 COPY tools/rdma/mlxup /usr/local/bin
 COPY tools/rdma/ibdev2netdev /usr/local/bin
 COPY tools/rdma/offload /usr/local/bin
+COPY tools/rdma/ibtest /usr/local/bin
+COPY tools/rdma/ibsweep /usr/local/bin
 
 COPY tools/net/parav_loopback /usr/local/bin
 
@@ -155,6 +158,9 @@ COPY tools/nvme/rebind-nvme /usr/local/bin
 # docker container.
 
 COPY tools/tmux/run-tmux /usr/local/bin
+COPY tools/tmux/ibtest-tmux /usr/local/bin
+
+COPY tools/rdma/brcm-hack /usr/local/bin
 
 # Update the pciids file so we pull in the Eideticom VID and DID
 # information.
