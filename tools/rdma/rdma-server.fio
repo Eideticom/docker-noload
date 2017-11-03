@@ -1,0 +1,8 @@
+[rdma-server]
+rw=read
+ioengine=rdma
+port=1066
+bindname=172.18.1.1
+bs=4k
+size=1M
+iodepth=64

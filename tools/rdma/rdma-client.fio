@@ -1,0 +1,11 @@
+[rdma-client]
+rw=write
+ioengine=rdma
+runtime=50
+hostname=172.18.1.1
+bindname=172.18.11.1
+port=1066
+verb=read
+bs=4k
+size=1M
+iodepth=64

@@ -169,9 +169,13 @@ RUN cp p2pmem-test /usr/local/bin
 # like the rdma ioengine.
 
 WORKDIR /root
-RUN git clone https://github.com/axboe/fio.git
 WORKDIR /root/fio
-RUN git checkout -b fio fio-3.1
+RUN git init
+RUN git remote add axboe https://github.com/axboe/fio.git
+RUN git remote add bates https://github.com/sbates130272/fio.git
+RUN git fetch axboe
+RUN git fetch bates
+RUN git checkout -b fio bates/rdma-bind
 RUN ./configure
 RUN make
 RUN make install
@@ -234,6 +238,7 @@ RUN echo "rdma-user ALL=(ALL) NOPASSWD:ALL" | tee -a /etc/sudoers
 WORKDIR /home/rdma-user
 RUN mkdir fio
 COPY tools/nvmeof/client/*.fio /home/rdma-user/fio/
+COPY tools/rdma/*.fio /home/rdma-user/fio/
 
 # Copy the commands file, which contains some handy cut and pastes
 # into the home folder of the new user.
