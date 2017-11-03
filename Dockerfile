@@ -245,3 +245,18 @@ COPY misc/commands /home/rdma-user
 
 WORKDIR /home/rdma-user
 USER rdma-user
+
+# Checkout fio locally and add both the upstream and bates fork of it
+# for development purposes.
+
+WORKDIR /home/rdma-user
+RUN mkdir -p /home/rdma-user/fio-src
+WORKDIR /home/rdma-user/fio-src
+RUN git init
+RUN git remote add axboe https://github.com/axboe/fio.git
+RUN git remote add bates https://github.com/sbates130272/fio.git
+RUN git fetch axboe
+RUN git fetch bates
+RUN git checkout -b rdma-bind bates/rdma-bind
+RUN git config --global user.email "sbates@raithlin.com"
+RUN git config --global user.name "Stephen Bates"
