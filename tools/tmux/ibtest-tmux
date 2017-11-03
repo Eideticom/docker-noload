@@ -1,0 +1,79 @@
+#!/bin/bash
+#
+# A simple script to run an ib_read/write_bw test in tmux windows when running RDMA
+# tests. Depending on the RDMA vendor we do a few things a little
+# differnetly. Also if there is a Microsemi Switchtec we call its
+# GUI.
+
+if [ -z "$1" ]; then
+	echo usage: $0 size [read:write] [seconds]
+	exit 1
+fi
+
+if [ -z "$2" ] || [ "$2" == "read" ]; then
+	# Default to read
+	ib_cmd="sudo ib_read_bw"
+else
+	ib_cmd="sudo ib_write_bw"
+fi
+
+if [ -z "$3" ]; then
+	# Default to 10s
+	sec="10"
+else
+	sec="$3"
+fi
+
+to_bytes() {
+  for v in "$@"
+  do
+    echo $v | gawk \
+      'BEGIN{IGNORECASE = 1}
+       function printpower(n,b,p) {printf "%u\n", n*b^p; next}
+       /[0-9]$/{print $1;next};
+       /K(iB)?$/{printpower($1,  2, 10)};
+       /M(iB)?$/{printpower($1,  2, 20)};
+       /G(iB)?$/{printpower($1,  2, 30)};
+       /T(iB)?$/{printpower($1,  2, 40)};
+       /KB$/{    printpower($1, 10,  3)};
+       /MB$/{    printpower($1, 10,  6)};
+       /GB$/{    printpower($1, 10,  9)};
+       /TB$/{    printpower($1, 10, 12)}'
+  done
+}
+
+bytes=`to_bytes $1`
+
+iomem_dev="mlx5_1"
+src_dev="mlx5_0"
+src_ip="172.18.11.1"
+
+#sudo ib_read_bw -d mlx5_1 -s 65536 -D 10 --mmap /dev/p2pmem0
+#sudo ib_read_bw -d mlx5_0 -s 65536 -D 10 172.18.11.1
+first_cmd="$ib_cmd -d $iomem_dev -s $bytes -D $sec --mmap /dev/p2pmem0"
+sec_cmd="$ib_cmd -d $src_dev -s $bytes -D $sec $src_ip"
+
+SWITCHTEC=${SWITCHTEC:-no}
+
+TMUX="tmux new session \;"
+TMUX+=" split-window -h -p 50 \;"
+TMUX+=" split-window -v -p 50 \;"
+TMUX+=" split-window -h -p 50 \;"
+TMUX+=' send-keys "watch -n 1 sudo counters" C-m \;'
+TMUX+=" select-pane -t 1 \;"
+
+if [ $SWITCHTEC != "no" ]; then
+    TMUX+=" split-window -h -p 50 \;"
+    TMUX+=' send-keys "sudo switchtec gui $SWITCHTEC" C-m \;'
+    TMUX+=" select-pane -t 1 \;"
+fi
+
+# Start client in pane 1
+TMUX+=" select-pane -t 1 \;"
+TMUX+=' send-keys "$first_cmd" C-m \;'
+
+# Start server in pane 2
+TMUX+=" select-pane -t 2 \;"
+TMUX+=' send-keys "$sec_cmd" C-m \;'
+
+eval $TMUX

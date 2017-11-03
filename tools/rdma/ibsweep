@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# A simple script to run a sweep of ib_read/write_bw tests when running RDMA
+# tests. Depending on the RDMA vendor we do a few things a little
+# differnetly. Also if there is a Microsemi Switchtec we call its
+# GUI.
+
+if [ "$1" != "read" ] && [ "$1" != "write" ]; then
+	echo "usage: $0 read:write points"
+	exit 1
+fi
+
+if [ -z "$2" ]; then
+	points="512 1k 4k 8k 16k 32k 64k 128k 256k 512k 1M"
+else
+	points="$2"
+fi
+
+for point in $points; do
+  eval "ibtest $point $1"
+done
+

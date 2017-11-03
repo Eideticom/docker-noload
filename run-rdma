@@ -16,7 +16,7 @@ TAG=${TAG:-latest}
 BROADCOM=${BROADCOM:-yes}
 CAVIUM=${CAVIUM:-yes}
 MELLANOX=${MELLANOX:-yes}
-SWITCHTEC=${SWITCHTEC:-yes}
+SWITCHTEC=${SWITCHTEC:-no}
 CFG=${CFG:-/sys/kernel/config}
 
   # Build list of necessary kernel modules
