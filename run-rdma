@@ -24,7 +24,6 @@ CFG=${CFG:-/sys/kernel/config}
 MODULES=(ib_uverbs \
 	     rdma_cm \
 	     rdma_ucm \
-	     configfs \
 	     nvmet \
 	     nvme \
 	     nvme_fabrics \

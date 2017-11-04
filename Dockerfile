@@ -12,6 +12,9 @@
 
 FROM ubuntu:16.04
 
+ENV http_proxy http://proxy.xilinx.com:8080
+ENV https_proxy https://proxy.xilinx.com:8080
+
 # Set the maintainer
 
 MAINTAINER Stephen Bates <stephen@eideticom.com>
@@ -143,7 +146,7 @@ RUN git checkout -b switchtec v0.7
 RUN make install
 
 WORKDIR /root
-RUN git clone git://git.infradead.org/users/hch/nvmetcli.git
+#RUN git clone git://git.infradead.org/users/hch/nvmetcli.git
 
 WORKDIR /root
 RUN git clone https://github.com/linux-nvme/nvme-cli.git
