@@ -51,7 +51,7 @@ bytes=`to_bytes $1`
 if [ "$MELLANOX" == "yes" ]; then
   iomem_dev="mlx5_1"
   src_dev="mlx5_0"
-  src_ip="172.18.11.1"
+  src_ip="172.18.1.1"
 else
   iomem_dev="bnxt_re1"
   src_dev="bnxt_re0"
@@ -59,19 +59,14 @@ else
 fi
 
 
-if [ -e $result_file ]; then
-  first_cmd="$ib_cmd -x 1 -d $iomem_dev -s $bytes -D $sec --mmap /dev/p2pmem0 &"
-else
-  first_cmd="$ib_cmd -x 1 -d $iomem_dev -s $bytes -D $sec --mmap /dev/p2pmem0 | tail -3 | head -2 | tee -a $result_file &"
+first_cmd="$ib_cmd -x 1 -d $iomem_dev -s $bytes -D $sec --mmap /dev/p2pmem0 | tail -3 | head -2 | tee -a $result_file &"
+if [ ! -e $result_file ]; then
   echo "$first_cmd" > $result_file
 fi
 
 sec_cmd="$ib_cmd -x 1 -d $src_dev -s $bytes -D $sec $src_ip"
 
 
-#echo $first_cmd
-#echo $sec_cmd
 eval $first_cmd
 sleep 1
 eval $sec_cmd
-
