@@ -50,6 +50,7 @@ RUN apt-get update && apt-get install -y \
     ninja-build \
     pciutils \
     pkg-config \
+    psmisc \
     python \
     python-docutils \
     valgrind \
