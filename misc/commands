@@ -5,3 +5,7 @@ sudo IP=172.18.5.1 setup_nvmet
 sudo IFACE0=brcm2p1 IP0=172.18.4.1 IFACE1=brcm3p1 IP1=172.18.5.1 parav_loopback
 sudo ib_write_bw -x 1 -s 65536 -D 10 -d bnxt_re1 --mmap /dev/p2pmem0
 sudo ib_write_bw -x 1 -s 65536 -D 10 -d bnxt_re0 172.18.5.1
+# Mellanox CX5s
+parav_loopback
+sudo ib_write_bw -x 1 -s 65536 -D 10 -d mlx5_1 --mmap /dev/p2pmem0
+sudo ib_write_bw -x 1 -s 65536 -D 10 -d mlx5_0 172.18.1.1
