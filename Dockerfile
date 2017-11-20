@@ -59,6 +59,7 @@ RUN apt-get update && apt-get install -y \
     sysstat \
     tmux \
     traceroute \
+    tree \
     vim \
     wget
 
@@ -174,9 +175,8 @@ WORKDIR /root/fio
 RUN git init
 RUN git remote add axboe https://github.com/axboe/fio.git
 RUN git remote add bates https://github.com/sbates130272/fio.git
-RUN git fetch axboe
-RUN git fetch bates
-RUN git checkout -b fio bates/rdma-bind
+RUN git fetch axboe && git fetch bates
+RUN git checkout -b fio 6e86d4b648950e8
 RUN ./configure
 RUN make
 RUN make install
