@@ -63,4 +63,4 @@ if [ $P2PMEM != "none" ]; then
 fi
 
 ln -s $CFG/nvmet/subsystems/$SUBSYS \
-   $CFG/nvmet/ports/1/subsystems/$SUBSYS
+   $CFG/nvmet/ports/${PORT}/subsystems/$SUBSYS
