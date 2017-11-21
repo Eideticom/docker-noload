@@ -8,7 +8,9 @@
 # Note that if DEV is a block device then we just add that device to
 # the exposed subsystem. However if DEV is a char device and has
 # "nvme" in its name then we add all namespaces for that NVMe
-# controller to the subsystem.
+# controller to the subsystem. Also if DEV is requested to be added to
+# an existing subsystem we just add it and do not try and recreate the
+# subsystem.
 
 set -e
 
@@ -16,19 +18,34 @@ CFG=${CFG:-/sys/kernel/config/}
 SUBSYS=${SUBSYS:-eideticom}
 DEV=${DEV:-/dev/nvme0n1}
 P2PMEM=${P2PMEM:-none}
-PORT=${PORT:-1}
-IPPORT=${IPPORT:-4420}
+PORT=${PORT:-4420}
 IP=${IP:-172.18.1.1}
+EXISTS=false
 
 cd $CFG/nvmet
 
-mkdir subsystems/$SUBSYS
+if [ ! -d subsystems/$SUBSYS ]; then
+   echo "Creating subsystem ${SUBSYS}."
+   mkdir subsystems/$SUBSYS
+else
+   echo "Adding ${DEV} to existing subsystem ${SUBSYS}."
+   EXISTS=true
+fi
+
 cd subsystems/$SUBSYS
-echo 1 > attr_allow_any_host
+if [ $EXISTS == "false" ]; then
+    echo 1 > attr_allow_any_host
+    i=1
+else
+    cd namespaces
+    DIRS=(*)
+    i=$((${DIRS[-1]}))
+    ((i++))
+    cd ..
+fi
 
 if [ -c $DEV ]; then
     if [[ $DEV == *"nvme"* ]]; then
-	i=1
 	for ns in ${DEV}n*; do
 	    echo "Adding $ns..."
 	    mkdir namespaces/$i
@@ -39,14 +56,18 @@ if [ -c $DEV ]; then
 	    cd ../../
 	done;
     else
-	echo "Not an NVMe char device."
+	echo "Not an NVMe device."
 	exit 1
     fi
 else
-    mkdir namespaces/1
-    cd namespaces/1
+    mkdir namespaces/$i
+    cd namespaces/$i
     echo -n $DEV > device_path
     echo 1 > enable
+fi
+
+if [ $EXISTS == "true" ]; then
+    exit 0
 fi
 
 cd $CFG/nvmet
@@ -55,7 +76,7 @@ mkdir ports/${PORT}
 cd ports/${PORT}
 echo -n ipv4 > addr_adrfam
 echo -n rdma > addr_trtype
-echo -n $IPPORT > addr_trsvcid
+echo -n $PORT > addr_trsvcid
 echo -n $IP > addr_traddr
 
 if [ $P2PMEM != "none" ]; then
