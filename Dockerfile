@@ -176,7 +176,7 @@ RUN git init
 RUN git remote add axboe https://github.com/axboe/fio.git
 RUN git remote add bates https://github.com/sbates130272/fio.git
 RUN git fetch axboe && git fetch bates
-RUN git checkout -b fio 6e86d4b648950e8
+RUN git checkout -b fio 9e787c76
 RUN ./configure
 RUN make
 RUN make install
