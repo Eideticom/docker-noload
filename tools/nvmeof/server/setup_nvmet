@@ -20,6 +20,7 @@ DEV=${DEV:-/dev/nvme0n1}
 P2PMEM=${P2PMEM:-none}
 PORT=${PORT:-4420}
 IP=${IP:-172.18.1.1}
+TRANS=${TRANS:-rdma}
 EXISTS=false
 
 cd $CFG/nvmet
@@ -75,7 +76,7 @@ cd $CFG/nvmet
 mkdir ports/${PORT}
 cd ports/${PORT}
 echo -n ipv4 > addr_adrfam
-echo -n rdma > addr_trtype
+echo -n $TRANS > addr_trtype
 echo -n $PORT > addr_trsvcid
 echo -n $IP > addr_traddr
 

@@ -6,9 +6,10 @@
 IPH=${IPH:-none}
 IPT=${IPT:-172.18.1.1}
 NAMESPACE=${NAMESPACE:-eideticom}
+TRANS=${TRANS:-rdma}
 
 if [ $IPH != "none" ]; then
-    nvme connect -t rdma -a $IPT -w $IPH -n $NAMESPACE
+    nvme connect -t ${TRANS} -a $IPT -w $IPH -n $NAMESPACE
 else
-    nvme connect -t rdma -a $IPT -n $NAMESPACE
+    nvme connect -t ${TRANS} -a $IPT -n $NAMESPACE
 fi
