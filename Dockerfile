@@ -181,6 +181,30 @@ RUN ./configure
 RUN make
 RUN make install
 
+# Install SPDK and DPDK. These are important for user-space NVMe and
+# NVMe-oF. We copy the setup.sh script and a simple NVMe HelloWorld
+# program into the path.
+
+WORKDIR /root/spdk
+RUN git init
+RUN git remote add origin https://github.com/spdk/spdk.git
+RUN git fetch origin
+RUN git checkout -b spdk v17.10.1
+RUN git submodule update --init
+
+RUN apt-get update && apt-get install -y \
+    libcunit1-dev \
+    libssl-dev \
+    libnuma-dev \
+    uuid-dev
+
+RUN ./configure --with-rdma
+RUN make
+
+RUN cp ./scripts/setup.sh /usr/local/bin
+RUN cp ./examples/nvme/hello_world/hello_world \
+     /usr/local/bin
+
 # Copy in the required tools in the tools subfolder and either install
 # or place them in a suitable place as required. NB some of these
 # tools are x86_64 specific and will obvioulsy bork if you are running
