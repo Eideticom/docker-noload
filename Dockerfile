@@ -160,7 +160,7 @@ RUN make install
 WORKDIR /root
 RUN git clone https://github.com/sbates130272/p2pmem-test.git
 WORKDIR /root/p2pmem-test
-RUN git checkout -b p2pmem v1.0
+RUN git checkout -b p2pmem 412106b8
 RUN git submodule init
 RUN git submodule update
 RUN make
@@ -176,7 +176,7 @@ RUN git init
 RUN git remote add axboe https://github.com/axboe/fio.git
 RUN git remote add bates https://github.com/sbates130272/fio.git
 RUN git fetch axboe && git fetch bates
-RUN git checkout -b fio 9e787c76
+RUN git checkout -b fio b9c153b9
 RUN ./configure
 RUN make
 RUN make install
