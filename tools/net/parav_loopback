@@ -15,24 +15,21 @@ LOOP_01=${LOOP_01:-20}
 IP0=${IP0:-172.18.1.1}
 IP1=${IP1:-172.18.11.1}
 
-LOWPRI=20000
-HIPRI=0
-
   # Shift local rules policy to lower priority
-  
-ip rule add pref $LOWPRI lookup local
-ip rule del pref $HIPRI
 
-ip rule add pref $HIPRI iif $IFACE0 lookup local
-ip rule add pref $HIPRI iif $IFACE1 lookup local
+ip rule add pref 20 lookup local
+ip rule del pref 0
+
+ip rule add pref 1 iif $IFACE0 lookup local
+ip rule add pref 2 iif $IFACE1 lookup local
 
   # Force packet to go out on interface
-  
-ip route add default dev $IFACE1 table $LOOP_10
-ip route add default dev $IFACE0 table $LOOP_01
+
+ip route add default dev $IFACE1 table $LOOP_10 src $IP1
+ip route add default dev $IFACE0 table $LOOP_01 src $IP0
 
  # Define special packets of p0 to p1, p1 to p0 to divert to force
  # table
- 
-ip rule add pref $HIPRI from $IP1 to $IP0 lookup $LOOP_10
-ip rule add pref $HIPRI from $IP0 to $IP1 lookup $LOOP_01
+
+ip rule add pref 3 to $IP0 lookup $LOOP_10
+ip rule add pref 4 to $IP1 lookup $LOOP_01

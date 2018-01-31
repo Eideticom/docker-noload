@@ -18,6 +18,7 @@ CFG=${CFG:-/sys/kernel/config/}
 SUBSYS=${SUBSYS:-eideticom}
 DEV=${DEV:-/dev/nvme0n1}
 P2PMEM=${P2PMEM:-none}
+OFFLOAD=${OFFLOAD:-none}
 PORT=${PORT:-4420}
 IP=${IP:-172.18.1.1}
 TRANS=${TRANS:-rdma}
@@ -36,6 +37,12 @@ fi
 cd subsystems/$SUBSYS
 if [ $EXISTS == "false" ]; then
     echo 1 > attr_allow_any_host
+
+    if [ $OFFLOAD != "none" ]; then
+        echo yes > attr_offload
+        echo "Using Mellanox offload"
+    fi
+
     i=1
 else
     cd namespaces
@@ -82,6 +89,7 @@ echo -n $IP > addr_traddr
 
 if [ $P2PMEM != "none" ]; then
     echo yes > allow_p2pmem
+    echo "Using p2p memory"
 fi
 
 ln -s $CFG/nvmet/subsystems/$SUBSYS \
