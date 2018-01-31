@@ -22,7 +22,6 @@ CFG=${CFG:-/sys/kernel/config}
   # Build list of necessary kernel modules
 
 MODULES=(ib_uverbs \
-	     rdma_cm \
 	     rdma_ucm \
 	     configfs \
 	     nvmet \
@@ -48,8 +47,17 @@ fi
   # installed. If not inform the user and exit.
 
 function modcheck {
+    local MODFOUND=0
 
-    if lsmod | grep "$1" &> /dev/null ; then
+    if [[ $1 == "ib_uverbs" && -d /sys/class/infiniband_verbs ]]; then
+        MODFOUND=1
+    fi
+
+    if [[ $1 == "rdma_ucm" && -d /sys/class/infiniband_cm ]]; then
+        MODFOUND=1
+    fi
+
+    if [[ $MODFOUND || -d /sys/module/$1 ]]; then
 	echo "$MODULE is loaded!"
     else
 	echo "$MODULE is not loaded! Please load and re-run!"
