@@ -1,0 +1,42 @@
+#!/bin/sh
+
+#
+# This script forces an external loop back through two local interfaces
+# for a specific destination IP addresses.
+#
+# To use it, put this script in /etc/network/if-up.d and
+# /etc/network/if-down.d. Then configure the interfaces with
+# extloop-local and extloop-remote options where the two numbers
+# correspond to unique unused routing tables
+#
+#    iface mlx0p1 inet static
+#        address 172.18.1.1
+#        netmask 255.255.255.0
+#        extloop-local 10
+#        extloop-remote 20
+#
+#    iface mlx1p1 inet static
+#        address 172.18.11.1
+#        netmask 255.255.255.0
+#        extloop-local 20
+#        extloop-remote 10
+#
+#
+
+if [ "$IF_EXTLOOP_LOCAL" = "" -o "$IF_EXTLOOP_REMOTE" = "" ]; then
+    exit 0;
+fi
+
+if [ "$MODE" = "start" ]; then
+    set -e
+    OP=add
+else
+    OP=del
+fi
+
+ip rule add pref 20 lookup local 2>&1 > /dev/null | true
+ip rule del pref 0  2>&1 > /dev/null | true
+
+ip rule $OP pref 1 iif $IFACE lookup local
+ip route $OP default dev $IFACE table $IF_EXTLOOP_LOCAL src $IF_ADDRESS
+ip rule $OP pref 2 to $IF_ADDRESS lookup $IF_EXTLOOP_REMOTE
