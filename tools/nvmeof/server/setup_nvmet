@@ -38,7 +38,7 @@ cd subsystems/$SUBSYS
 if [ $EXISTS == "false" ]; then
     echo 1 > attr_allow_any_host
 
-    if [ $OFFLOAD != "none" ]; then
+    if [ $OFFLOAD != "none" -a -e attr_offload ]; then
         echo yes > attr_offload
         echo "Using Mellanox offload"
     fi
@@ -59,6 +59,7 @@ if [ -c $DEV ]; then
 	    mkdir namespaces/$i
 	    cd namespaces/$i
 	    echo -n $ns > device_path
+
 	    echo 1 > enable
 	    ((i++))
 	    cd ../../
@@ -71,6 +72,12 @@ else
     mkdir namespaces/$i
     cd namespaces/$i
     echo -n $DEV > device_path
+
+    if [ $OFFLOAD != "none" -a -e pci_device_path ]; then
+	echo -n $OFFLOAD > pci_device_path
+	echo "Using Mellanox offload"
+    fi
+
     echo 1 > enable
 fi
 
