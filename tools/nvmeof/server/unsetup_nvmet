@@ -2,7 +2,7 @@
 
 CFG=${CFG:-/sys/kernel/config/nvmet/}
 SUBSYS=${SUBSYS:-eideticom}
-PORT=${PORT:-1}
+PORT=${PORT:-4420}
 
 if [ -e $CFG/subsystems/$SUBSYS/namespaces/1/enable ]; then
     rm -f $CFG/ports/${PORT}/subsystems/$SUBSYS || true
