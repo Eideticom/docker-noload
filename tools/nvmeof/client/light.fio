@@ -1,0 +1,9 @@
+[randrw]
+ioengine=libaio
+rw=randrw
+direct=1
+iodepth=4
+runtime=60
+io_size=10000T
+numjobs=16
+bs=64k
