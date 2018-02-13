@@ -1,0 +1,70 @@
+#!/bin/bash
+
+CFG=${CFG:-/sys/kernel/config}
+CLIENT=${CLIENT:-fpga@yoda}
+CLIENT_DIR=${CLIENT_DIR:-/home/fpga/docker-noload/tools/nvmeof/client}
+SUBSYS=${SUBSYS:-eideticom}
+PORT=${PORT:-4420}
+
+set -e
+
+function reset {
+	tput sgr0
+}
+
+trap reset EXIT
+
+function run_client_demo {
+	killall -USR1 switchtec || true
+
+	ssh -i id_rsa -t $CLIENT sudo ${CLIENT_DIR}/demo
+	wait
+}
+
+function set_offload {
+	rm $CFG/nvmet/ports/${PORT}/subsystems/$SUBSYS
+	echo 0 > $CFG/nvmet/subsystems/$SUBSYS/namespaces/1/enable
+	echo $1 > $CFG/nvmet/subsystems/$SUBSYS/attr_offload
+	echo 1 > $CFG/nvmet/subsystems/$SUBSYS/namespaces/1/enable
+	ln -s $CFG/nvmet/subsystems/$SUBSYS \
+		$CFG/nvmet/ports/${PORT}/subsystems/$SUBSYS
+}
+
+#while true; do
+	tput setaf 6
+	set_offload 0
+	echo 0 > $CFG/nvmet/ports/$PORT/allow_p2pmem
+	echo
+	echo "==============================================="
+	echo "    Vanilla NVME Fabrics (No P2P)              "
+	echo "==============================================="
+        run_client_demo
+
+	tput setaf 5
+	echo 1 > $CFG/nvmet/ports/$PORT/allow_p2pmem
+	echo
+	echo "==============================================="
+	echo "    NVME Fabrics With P2P Memory               "
+	echo "==============================================="
+	run_client_demo
+
+	sleep 1
+
+	tput setaf 4
+	set_offload 1
+	echo 0 > $CFG/nvmet/ports/$PORT/allow_p2pmem
+	echo
+	echo "==============================================="
+	echo "    NVME Fabrics With P2P Offload              "
+	echo "==============================================="
+	run_client_demo
+
+	tput setaf 2
+	set_offload 1
+	echo 1 > $CFG/nvmet/ports/$PORT/allow_p2pmem
+	echo
+	echo "==============================================="
+	echo "    NVME Fabrics With P2P Offload              "
+	echo "==============================================="
+	run_client_demo
+#done

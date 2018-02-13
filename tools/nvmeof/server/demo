@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# A simple script to setup the demo "GUI" using tmux commands.
+
+SWITCHTEC=${SWITCHTEC:-/dev/switchtec0}
+NVME_DEV=${NVME_DEV:-nvme0n1}
+REMOTE=${REMOTE:-yoda}
+
+tmux new session  \; \
+   new-window 'bash' \; \
+   split-window -h 'switchtec gui $SWITCHTEC' \; \
+   split-window -v -t 1 iostat -d $NVME_DEV 2 \; \
+   select-pane -t 0
