@@ -1,0 +1,7 @@
+#!/bin/bash
+
+NVME_DEV=${NVME_DEV:-/dev/nvme0}
+
+nvme disconnect -d $NVME_DEV
+
+./connect
