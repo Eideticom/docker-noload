@@ -11,6 +11,6 @@ REMOTE=${REMOTE:-yoda}
 tmux new session  \; \
    new-window ssh $REMOTE -t "fio light.fio --filename=/dev/$REMOTE_NVME_DEV;bash -l" \; \
    split-window -h switchtec gui $SWITCHTEC  \; \
-   split-window -v -t 0 ssh $REMOTE iostat -d $REMOTE_NVME_DEV 2 \; \
-   split-window -v -t 1 iostat -d $NVME_DEV 2 \; \
+   split-window -v -t 0 ssh $REMOTE iostat -m -d $REMOTE_NVME_DEV 2 \; \
+   split-window -v -t 1 iostat -m -d $NVME_DEV 2 \; \
    select-pane -t 0
