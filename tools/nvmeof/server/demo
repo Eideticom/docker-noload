@@ -4,10 +4,13 @@
 
 SWITCHTEC=${SWITCHTEC:-/dev/switchtec0}
 NVME_DEV=${NVME_DEV:-nvme0n1}
+
+REMOTE_NVME_DEV=${REMOTE_NVME_DEV:-nvme0n1}
 REMOTE=${REMOTE:-yoda}
 
 tmux new session  \; \
-   new-window 'bash' \; \
-   split-window -h 'switchtec gui $SWITCHTEC' \; \
+   new-window ssh $REMOTE -t "fio light.fio --filename=/dev/$REMOTE_NVME_DEV;bash -l" \; \
+   split-window -h switchtec gui $SWITCHTEC  \; \
+   split-window -v -t 0 ssh $REMOTE iostat -d $REMOTE_NVME_DEV 2 \; \
    split-window -v -t 1 iostat -d $NVME_DEV 2 \; \
    select-pane -t 0
