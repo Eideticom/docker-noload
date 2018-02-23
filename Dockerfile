@@ -123,15 +123,20 @@ RUN ./configure
 RUN make
 RUN make install
 
-# Install mstflint. Note the Ubuntu Xenial version is not recent
-# enough to support CX5 so we copy in a more recent release. We might
-# want to change this down the road. Note that this .deb was edited to
-# remove the libumad5 dependency since inifiband-diags now provides
-# that.
+# Install mstflint. Now that Mellanox have open-sourced this we can
+# pull it direct fromm GitHub
 
 WORKDIR /root
-COPY tools/rdma/mstflint_4.6.0-1_*.deb .
-RUN if [ "$(uname -m)" = x86_64 ]; then dpkg -i mstflint_4.6.0-1_*.deb; fi
+RUN mkdir mstflint
+WORKDIR /root/mstflint
+RUN git init && \
+    git remote add origin https://github.com/Mellanox/mstflint.git
+RUN git fetch origin
+RUN git checkout -b mstflint v4.8.0-2
+RUN ./autogen.sh
+RUN ./configure
+RUN make
+RUN make install
 
 # Install the switchtec-user and nvmetcli cli program via github. This
 # is because  we don't have packages for them yet. Also install
