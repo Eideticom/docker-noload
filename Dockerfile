@@ -165,7 +165,7 @@ RUN make install
 WORKDIR /root
 RUN git clone https://github.com/sbates130272/p2pmem-test.git
 WORKDIR /root/p2pmem-test
-RUN git checkout -b p2pmem 412106b8
+RUN git checkout -b p2pmem 64978e09
 RUN git submodule init
 RUN git submodule update
 RUN make
