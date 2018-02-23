@@ -81,17 +81,17 @@ WORKDIR /root/rdma-core
 RUN dpkg-buildpackage -d
 WORKDIR /root/
 RUN dpkg -i --force-overwrite \
-    rdma-core_15-1_amd64.deb \
-    libibverbs1_15-1_amd64.deb \
-    libibverbs-dev_15-1_amd64.deb \
-    libibcm1_15-1_amd64.deb \
-    ibverbs-utils_15-1_amd64.deb \
-    ibverbs-providers_15-1_amd64.deb \
-    rdmacm-utils_15-1_amd64.deb \
-    librdmacm1_15-1_amd64.deb \
-    librdmacm-dev_15-1_amd64.deb \
-    libibumad3_15-1_amd64.deb \
-    libibumad-dev_15-1_amd64.deb
+    rdma-core_15-1_*.deb \
+    libibverbs1_15-1_*.deb \
+    libibverbs-dev_15-1_*.deb \
+    libibcm1_15-1_*.deb \
+    ibverbs-utils_15-1_*.deb \
+    ibverbs-providers_15-1_*.deb \
+    rdmacm-utils_15-1_*.deb \
+    librdmacm1_15-1_*.deb \
+    librdmacm-dev_15-1_*.deb \
+    libibumad3_15-1_*.deb \
+    libibumad-dev_15-1_*.deb
 
 # Install infiniband-diags and perftest. Both of these are now
 # upstreamed on the linux-rdma GitHub account.
@@ -130,8 +130,8 @@ RUN make install
 # that.
 
 WORKDIR /root
-COPY tools/rdma/mstflint_4.6.0-1_amd64.deb .
-RUN dpkg -i mstflint_4.6.0-1_amd64.deb
+COPY tools/rdma/mstflint_4.6.0-1_*.deb .
+RUN if [ "$(uname -m)" = x86_64 ]; then dpkg -i mstflint_4.6.0-1_*.deb; fi
 
 # Install the switchtec-user and nvmetcli cli program via github. This
 # is because  we don't have packages for them yet. Also install
@@ -183,7 +183,8 @@ RUN make install
 
 # Install SPDK and DPDK. These are important for user-space NVMe and
 # NVMe-oF. We copy the setup.sh script and a simple NVMe HelloWorld
-# program into the path.
+# program into the path. Note that SPDK currently does not support
+# non-x86 ARCH so we pull the code but skip the install for those.
 
 WORKDIR /root/spdk
 RUN git init
@@ -199,14 +200,13 @@ RUN apt-get update && apt-get install -y \
     uuid-dev
 
 RUN ./configure --with-rdma
-RUN make
+RUN if [ "$(uname -m)" = x86_64 ]; then make; fi
 
-RUN cp ./scripts/setup.sh /usr/local/bin
-RUN cp ./examples/nvme/hello_world/hello_world \
-     /usr/local/bin
+RUN if [ "$(uname -m)" = x86_64 ]; then  cp ./scripts/setup.sh \
+    ./examples/nvme/hello_world/hello_world /usr/local/bin; fi
 
 # Copy in the required tools in the tools subfolder and either install
-# or place them in a suitable place as required. NB some of these
+# or place them in a suitable place as required. NB a few of these
 # tools are x86_64 specific and will obvioulsy bork if you are running
 # a differnet ARCH.
 
