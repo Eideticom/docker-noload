@@ -46,6 +46,7 @@ RUN apt-get update && apt-get install -y \
     libtool \
     libopensm5a \
     libopensm-dev \
+    libudev-dev \
     net-tools \
     ninja-build \
     pciutils \
@@ -60,6 +61,7 @@ RUN apt-get update && apt-get install -y \
     tmux \
     traceroute \
     tree \
+    udev \
     vim \
     wget
 
@@ -74,24 +76,23 @@ WORKDIR /root/rdma-core
 RUN git init && \
     git remote add origin https://github.com/linux-rdma/rdma-core.git
 RUN git fetch origin
-RUN git checkout -b rdma v15
+RUN git checkout -b rdma v17
 WORKDIR /root
-RUN tar cvfz rdma-core_15.orig.tar.gz rdma-core
+RUN tar cvfz rdma-core_17.0.orig.tar.gz rdma-core
 WORKDIR /root/rdma-core
 RUN dpkg-buildpackage -d
 WORKDIR /root/
 RUN dpkg -i --force-overwrite \
-    rdma-core_15-1_*.deb \
-    libibverbs1_15-1_*.deb \
-    libibverbs-dev_15-1_*.deb \
-    libibcm1_15-1_*.deb \
-    ibverbs-utils_15-1_*.deb \
-    ibverbs-providers_15-1_*.deb \
-    rdmacm-utils_15-1_*.deb \
-    librdmacm1_15-1_*.deb \
-    librdmacm-dev_15-1_*.deb \
-    libibumad3_15-1_*.deb \
-    libibumad-dev_15-1_*.deb
+    rdma-core_17.0-1_*.deb \
+    libibverbs1_17.0-1_*.deb \
+    libibverbs-dev_17.0-1_*.deb \
+    ibverbs-utils_17.0-1_*.deb \
+    ibverbs-providers_17.0-1_*.deb \
+    rdmacm-utils_17.0-1_*.deb \
+    librdmacm1_17.0-1_*.deb \
+    librdmacm-dev_17.0-1_*.deb \
+    libibumad3_17.0-1_*.deb \
+    libibumad-dev_17.0-1_*.deb
 
 # Install infiniband-diags and perftest. Both of these are now
 # upstreamed on the linux-rdma GitHub account.
