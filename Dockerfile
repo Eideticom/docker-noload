@@ -141,24 +141,35 @@ RUN make install
 
 # Install the switchtec-user and nvmetcli cli program via github. This
 # is because  we don't have packages for them yet. Also install
-# nvme-cli via GitHub as the packaged version does not at this time
-# support fabrics.
+# nvme-cli via GitHub and add the Eideticom plug-in to it. Also
+# install the NVMe-oF performance monitoring tool.
 
 WORKDIR /root
 RUN git clone https://github.com/Microsemi/switchtec-user.git
 WORKDIR /root/switchtec-user
-RUN git checkout -b switchtec v0.7
-RUN make install
+RUN git checkout -b switchtec 7e4342e5
+RUN ./configure && make && make install
 
 WORKDIR /root
 RUN git clone git://git.infradead.org/users/hch/nvmetcli.git
 
 WORKDIR /root
-RUN git clone https://github.com/linux-nvme/nvme-cli.git
+RUN mkdir nvme-cli
 WORKDIR /root/nvme-cli
-RUN git checkout -b nvme-cli v1.4
-RUN make
-RUN make install
+RUN git init && \
+    git remote add origin https://github.com/linux-nvme/nvme-cli.git && \
+    git remote add eid https://github.com/Eideticom/nvme-cli.git
+RUN git fetch origin && git fetch eid
+RUN git checkout -b nvme-cli 7fb65f83
+RUN make && make install
+
+WORKDIR /root
+RUN mkdir nvmeof-perf
+WORKDIR /root/nvmeof-perf
+RUN git init && \
+    git remote add origin https://github.com/Eideticom/nvmeof-perf.git
+RUN git fetch origin
+RUN git checkout -b nvmeof-perf e5c79708
 
 # Install p2pmem-test. We pull a tag for this like we do for other
 # things to ensure a consistent environment.
