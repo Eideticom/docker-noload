@@ -16,27 +16,40 @@ set -e
 
 CFG=${CFG:-/sys/kernel/config/}
 SUBSYS=${SUBSYS:-eideticom}
+PT=${PT:-false}
 DEV=${DEV:-/dev/nvme0n1}
+PTDEV=${PT:-nvme0}
 P2PMEM=${P2PMEM:-none}
 OFFLOAD=${OFFLOAD:-none}
 PORT=${PORT:-4420}
 IP=${IP:-172.18.1.1}
 TRANS=${TRANS:-rdma}
 EXISTS=false
+SUBSYSPATH=none
 
 cd $CFG/nvmet
 
-if [ ! -d subsystems/$SUBSYS ]; then
+if [ $PT == "true" ]; then
+    SUBSYSPATH=pt/$SUBSYS
+else
+    SUBSYSPATH=subsystems/$SUBSYS
+fi
+
+if [ ! -d $SUBSYSPATH ]; then
    echo "Creating subsystem ${SUBSYS}."
-   mkdir subsystems/$SUBSYS
+   mkdir $SUBSYSPATH
 else
    echo "Adding ${DEV} to existing subsystem ${SUBSYS}."
    EXISTS=true
 fi
 
-cd subsystems/$SUBSYS
+cd $SUBSYSPATH
 if [ $EXISTS == "false" ]; then
     echo 1 > attr_allow_any_host
+    if [ $PT == "true"]; then
+        echo $PTDEV > attr_ctrl_path
+        echo 1 > attr_enable
+    fi
 
     if [ $OFFLOAD != "none" -a -e attr_offload ]; then
         echo yes > attr_offload
@@ -99,5 +112,5 @@ if [ $P2PMEM != "none" ]; then
     echo "Using p2p memory"
 fi
 
-ln -s $CFG/nvmet/subsystems/$SUBSYS \
+ln -s $CFG/nvmet/$SUBSYSPATH \
    $CFG/nvmet/ports/${PORT}/subsystems/$SUBSYS
