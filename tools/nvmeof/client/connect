@@ -3,7 +3,7 @@
 # Simple wrapper for nvme discover command. Probably needs to be run
 # as root. Use IPH to bind to a local interface if needed.
 
-IPH=${IPH:-none}
+IPH=${IPH:-172.18.1.2}
 IPT=${IPT:-172.18.1.1}
 NAMESPACE=${NAMESPACE:-eideticom}
 TRANS=${TRANS:-rdma}

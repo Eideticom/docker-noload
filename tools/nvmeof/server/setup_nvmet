@@ -16,9 +16,9 @@ set -e
 
 CFG=${CFG:-/sys/kernel/config/}
 SUBSYS=${SUBSYS:-eideticom}
-PT=${PT:-false}
+PT=${PT:-true}
 DEV=${DEV:-/dev/nvme0n1}
-PTDEV=${PT:-nvme0}
+PTDEV=${PTDEV:-nvme0}
 P2PMEM=${P2PMEM:-none}
 OFFLOAD=${OFFLOAD:-none}
 PORT=${PORT:-4420}
@@ -30,6 +30,7 @@ SUBSYSPATH=none
 cd $CFG/nvmet
 
 if [ $PT == "true" ]; then
+    echo "Creating pt subsystem ${SUBSYS}"
     SUBSYSPATH=pt/$SUBSYS
 else
     SUBSYSPATH=subsystems/$SUBSYS
@@ -46,8 +47,8 @@ fi
 cd $SUBSYSPATH
 if [ $EXISTS == "false" ]; then
     echo 1 > attr_allow_any_host
-    if [ $PT == "true"]; then
-        echo $PTDEV > attr_ctrl_path
+    if [ $PT == "true" ]; then
+        echo -n $PTDEV > attr_ctrl_path
         echo 1 > attr_enable
     fi
 
@@ -65,33 +66,35 @@ else
     cd ..
 fi
 
-if [ -c $DEV ]; then
-    if [[ $DEV == *"nvme"* ]]; then
-	for ns in ${DEV}n*; do
-	    echo "Adding $ns..."
-	    mkdir namespaces/$i
-	    cd namespaces/$i
-	    echo -n $ns > device_path
+if [ $PT == "false" ]; then
+    if [ -c $DEV ]; then
+        if [[ $DEV == *"nvme"* ]]; then
+        for ns in ${DEV}n*; do
+            echo "Adding $ns..."
+            mkdir namespaces/$i
+            cd namespaces/$i
+            echo -n $ns > device_path
 
-	    echo 1 > enable
-	    ((i++))
-	    cd ../../
-	done;
+            echo 1 > enable
+            ((i++))
+            cd ../../
+        done;
+        else
+        echo "Not an NVMe device."
+        exit 1
+        fi
     else
-	echo "Not an NVMe device."
-	exit 1
-    fi
-else
-    mkdir namespaces/$i
-    cd namespaces/$i
-    echo -n $DEV > device_path
+        mkdir namespaces/$i
+        cd namespaces/$i
+        echo -n $DEV > device_path
 
-    if [ $OFFLOAD != "none" -a -e pci_device_path ]; then
-	echo -n $OFFLOAD > pci_device_path
-	echo "Using Mellanox offload"
-    fi
+        if [ $OFFLOAD != "none" -a -e pci_device_path ]; then
+        echo -n $OFFLOAD > pci_device_path
+        echo "Using Mellanox offload"
+        fi
 
-    echo 1 > enable
+        echo 1 > enable
+    fi
 fi
 
 if [ $EXISTS == "true" ]; then
