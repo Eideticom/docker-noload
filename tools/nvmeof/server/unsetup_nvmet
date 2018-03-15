@@ -11,4 +11,11 @@ if [ -e $CFG/subsystems/$SUBSYS/namespaces/1/enable ]; then
     rmdir $CFG/subsystems/$SUBSYS/namespaces/* || true
     rmdir $CFG/subsystems/$SUBSYS || true
     rmdir $CFG/ports/${PORT} || true
+
+elif [ -e $CFG/pt/$SUBSYS/attr_enable ]; then
+    rm -f $CFG/ports/${PORT}/subsystems/$SUBSYS || true
+    echo 0 > $CFG/pt/$SUBSYS/attr_enable
+
+    rmdir $CFG/pt/$SUBSYS || true
+    rmdir $CFG/ports/${PORT} || true
 fi
