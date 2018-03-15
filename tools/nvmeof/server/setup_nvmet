@@ -16,7 +16,7 @@ set -e
 
 CFG=${CFG:-/sys/kernel/config/}
 SUBSYS=${SUBSYS:-eideticom}
-DEV=${DEV:-/dev/nvme0n1}
+DEV=${DEV:-/dev/nvme0}
 PTDEV=${PTDEV:-none}
 P2PMEM=${P2PMEM:-/dev/p2pmem0}
 OFFLOAD=${OFFLOAD:-none}
@@ -29,6 +29,7 @@ SUBSYSPATH=none
 cd $CFG/nvmet
 
 if [ $PTDEV == "none" ]; then
+    echo "Using normal subsystems"
     SUBSYSPATH=subsystems/$SUBSYS
 else
     if [ ! -d $CFG/nvmet/pt ]; then
@@ -69,22 +70,22 @@ else
     cd ..
 fi
 
-if [ $PTDEV != "none" ]; then
+if [ $PTDEV == "none" ]; then
     if [ -c $DEV ]; then
         if [[ $DEV == *"nvme"* ]]; then
-        for ns in ${DEV}n*; do
-            echo "Adding $ns..."
-            mkdir namespaces/$i
-            cd namespaces/$i
-            echo -n $ns > device_path
+            for ns in ${DEV}n*; do
+                echo "Adding $ns..."
+                mkdir namespaces/$i
+                cd namespaces/$i
+                echo -n $ns > device_path
 
-            echo 1 > enable
-            ((i++))
-            cd ../../
-        done;
+                echo 1 > enable
+                ((i++))
+                cd ../../
+            done;
         else
-        echo "Not an NVMe device."
-        exit 1
+            echo "Not an NVMe device."
+            exit 1
         fi
     else
         mkdir namespaces/$i
