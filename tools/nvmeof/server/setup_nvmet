@@ -16,10 +16,9 @@ set -e
 
 CFG=${CFG:-/sys/kernel/config/}
 SUBSYS=${SUBSYS:-eideticom}
-PT=${PT:-true}
 DEV=${DEV:-/dev/nvme0n1}
-PTDEV=${PTDEV:-nvme0}
-P2PMEM=${P2PMEM:-none}
+PTDEV=${PTDEV:-none}
+P2PMEM=${P2PMEM:-/dev/p2pmem0}
 OFFLOAD=${OFFLOAD:-none}
 PORT=${PORT:-4420}
 IP=${IP:-172.18.1.1}
@@ -29,11 +28,15 @@ SUBSYSPATH=none
 
 cd $CFG/nvmet
 
-if [ $PT == "true" ]; then
+if [ $PTDEV == "none" ]; then
+    SUBSYSPATH=subsystems/$SUBSYS
+else
+    if [ ! -d $CFG/nvmet/pt ]; then
+        echo "Passthru patches not enabled in kernel"
+        exit 1
+    fi
     echo "Creating pt subsystem ${SUBSYS}"
     SUBSYSPATH=pt/$SUBSYS
-else
-    SUBSYSPATH=subsystems/$SUBSYS
 fi
 
 if [ ! -d $SUBSYSPATH ]; then
@@ -47,7 +50,7 @@ fi
 cd $SUBSYSPATH
 if [ $EXISTS == "false" ]; then
     echo 1 > attr_allow_any_host
-    if [ $PT == "true" ]; then
+    if [ $PTDEV != "none" ]; then
         echo -n $PTDEV > attr_ctrl_path
         echo 1 > attr_enable
     fi
@@ -66,7 +69,7 @@ else
     cd ..
 fi
 
-if [ $PT == "false" ]; then
+if [ $PTDEV != "none" ]; then
     if [ -c $DEV ]; then
         if [[ $DEV == *"nvme"* ]]; then
         for ns in ${DEV}n*; do
