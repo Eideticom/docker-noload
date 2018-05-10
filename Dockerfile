@@ -1,11 +1,12 @@
 #
-# Userspace RMDA (and NVMe-oF) Dockerfile
+# Userspace Dockerfile for Eideticom NoLoad work
 #
-# https://github.com/eideticom/docker-rdma
+# https://github.com/eideticom/docker-noload
 #
 # This Dockerfile creates a container full of useful tools for
-# getting RDMA up and running inside a container. Also contains tools
-# for NVMe over Fabrics etc.
+# getting Eideticom NoLoad related tooling up and running inside a
+# container. Also contains tools for generic RDMA, NVMe and NVMe over
+# Fabrics etc.
 #
 
 # Pull base image (use Ubuntu LTS).
@@ -14,7 +15,7 @@ FROM ubuntu:18.04
 
 # Set the maintainer
 
-MAINTAINER Stephen Bates <stephen@eideticom.com>
+LABEL maintainer="Stephen Bates <stephen@eideticom.com>"
 
 # Install the packages we want and need to get RDMA running plus some
 # useful PCIe, NVMe and NVMe-oF packages. Note that we use Jason
