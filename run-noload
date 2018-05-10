@@ -11,7 +11,7 @@
 
   # Command line variables
 
-LABEL=${LABEL:-rdma}
+LABEL=${LABEL:-noload}
 TAG=${TAG:-latest}
 BROADCOM=${BROADCOM:-yes}
 CAVIUM=${CAVIUM:-yes}
