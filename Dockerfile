@@ -10,7 +10,7 @@
 
 # Pull base image (use Ubuntu LTS).
 
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 # Set the maintainer
 
@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y \
     dh-make \
     dh-systemd \
     ethtool \
-    emacs24-nox \
+    emacs-nox \
     gcc \
     git \
     htop \
