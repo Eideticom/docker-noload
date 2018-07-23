@@ -22,19 +22,30 @@ OFFLOAD=${OFFLOAD:-none}
 PORT=${PORT:-4420}
 IP=${IP:-172.18.1.1}
 TRANS=${TRANS:-rdma}
+PASSTHRU=${PASSTHRU:-no}
 EXISTS=false
 
 cd $CFG/nvmet
 
-if [ ! -d subsystems/$SUBSYS ]; then
-   echo "Creating subsystem ${SUBSYS}."
-   mkdir subsystems/$SUBSYS
+if [ $PASSTHRU == "yes" ]; then
+    SUBDIR=pt
 else
-   echo "Adding ${DEV} to existing subsystem ${SUBSYS}."
+    SUBDIR=subsystems
+fi
+
+if [ ! -d ${SUBDIR}/$SUBSYS ]; then
+   echo "Creating subsystem ${SUBDIR}/${SUBSYS}."
+   mkdir ${SUBDIR}/$SUBSYS
+else
+   if [ $PASSTHRU == "yes" ]; then
+       echo "subsystem cannot already exist for passthru!"
+       exit 1
+   fi
+   echo "Adding ${DEV} to existing subsystem ${SUBDIR}/${SUBSYS}."
    EXISTS=true
 fi
 
-cd subsystems/$SUBSYS
+cd ${SUBDIR}/$SUBSYS
 if [ $EXISTS == "false" ]; then
     echo 1 > attr_allow_any_host
 
@@ -52,6 +63,10 @@ else
     cd ..
 fi
 
+if [ $PASSTHRU == "yes" ]; then
+    echo -n $DEV > attr_ctrl_path
+    echo -n 1 > attr_enable
+else
 if [ -c $DEV ]; then
     if [[ $DEV == *"nvme"* ]]; then
 	for ns in ${DEV}n*; do
@@ -80,6 +95,7 @@ else
 
     echo 1 > enable
 fi
+fi
 
 if [ $EXISTS == "true" ]; then
     exit 0
@@ -99,5 +115,5 @@ if [ $P2PMEM != "none" ]; then
     echo "Using p2p memory"
 fi
 
-ln -s $CFG/nvmet/subsystems/$SUBSYS \
-   $CFG/nvmet/ports/${PORT}/subsystems/$SUBSYS
+ln -s $CFG/nvmet/${SUBDIR}/$SUBSYS \
+    $CFG/nvmet/ports/${PORT}/subsystems/$SUBSYS

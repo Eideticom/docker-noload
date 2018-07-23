@@ -2,13 +2,28 @@
 
 CFG=${CFG:-/sys/kernel/config/nvmet/}
 SUBSYS=${SUBSYS:-eideticom}
+PASSTHRU=${PASSTHRU:-no}
 PORT=${PORT:-4420}
 
-if [ -e $CFG/subsystems/$SUBSYS/namespaces/1/enable ]; then
-    rm -f $CFG/ports/${PORT}/subsystems/$SUBSYS || true
-    echo 0 > $CFG/subsystems/$SUBSYS/namespaces/1/enable
-
-    rmdir $CFG/subsystems/$SUBSYS/namespaces/* || true
-    rmdir $CFG/subsystems/$SUBSYS || true
-    rmdir $CFG/ports/${PORT} || true
+if [ $PASSTHRU == "yes" ]; then
+    if [ -e $CFG/pt/$SUBSYS/attr_enable ]; then
+	rm -f $CFG/ports/${PORT}/subsystems/$SUBSYS || true
+	echo 0 > $CFG/pt/$SUBSYS/attr_enable
+	
+	rmdir $CFG/pt/$SUBSYS|| true
+	rmdir $CFG/ports/${PORT} || true
+    else
+	echo "could not remove passthru subsystem ${SUBSYS}."
+    fi
+else
+    if [ -e $CFG/subsystems/$SUBSYS/namespaces/1/enable ]; then
+	rm -f $CFG/ports/${PORT}/subsystems/$SUBSYS || true
+	echo 0 > $CFG/subsystems/$SUBSYS/namespaces/1/enable
+	
+	rmdir $CFG/subsystems/$SUBSYS/namespaces/* || true
+	rmdir $CFG/subsystems/$SUBSYS || true
+	rmdir $CFG/ports/${PORT} || true
+    else
+	echo "could not remove standard subsystem ${SUBSYS}."
+    fi
 fi
