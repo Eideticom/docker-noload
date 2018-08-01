@@ -7,9 +7,10 @@ IPH=${IPH:-none}
 IPT=${IPT:-172.18.1.1}
 NAMESPACE=${NAMESPACE:-eideticom}
 TRANS=${TRANS:-rdma}
+PORT=${PORT:-4420}
 
 if [ $IPH != "none" ]; then
-    nvme connect -t ${TRANS} -a $IPT -w $IPH -n $NAMESPACE
+    nvme connect -t ${TRANS} -a $IPT -w $IPH -n $NAMESPACE -s ${PORT}
 else
-    nvme connect -t ${TRANS} -a $IPT -n $NAMESPACE
+    nvme connect -t ${TRANS} -a $IPT -n $NAMESPACE -s ${PORT}
 fi
